@@ -1,18 +1,12 @@
 #pragma once
 
-#include "libavz.h"
-#include "global_vars.h"
-#include "time.h"
 #include "error.h"
+#include "global.h"
+#include "libavz.h"
+#include "time.h"
 #include "util.h"
 
 namespace _SimpleAvZInternal {
-
-bool is_night()
-{
-    auto scene = AvZ::GetMainObject()->scene();
-    return (scene > 4) || (scene % 2 == 1);
-}
 
 PlantType non_imitater(const PlantType& plant_type)
 {
@@ -40,12 +34,13 @@ int get_effect_time(Time time, const std::vector<PlantType>& plant_types)
 {
     switch (time.type) {
     case Time::Type::ABS:
+        _SimpleAvZInternal::last_set_time = time.time;
         if (time.fix_card_time_to_cob)
             return is_instant(plant_types) ? (time.time + 1) : time.time;
         else
             return time.time;
     case Time::Type::REL:
-        return _SimpleAvZInternal::get_last_ash_effect_time() + time.time;
+        return _SimpleAvZInternal::get_delayed_time_and_update(time.time);
     default:
         assert(false);
     }
@@ -146,20 +141,20 @@ bool get_set_active_time_flag(const PlantType& plant_type)
 
 } // namespace _SimpleAvZInternal
 
-// 铲除植物函数
+// 铲除植物. 可提供单一坐标, 多行同列. 也可指定要铲除的植物种类.
 // *** 使用示例:
 // RM(400, SUNFLOWER)-----------于400cs铲除场地上所有小向
-// RM(400, PUMPKIN, 1, 1)-------于400cs铲除位于1-1的南瓜（若无, 则跳过）
-// RM(400, 1, 1)----------------于400cs铲除位于1-1的植物, 优先铲除非南瓜
-// RM(400, {1, 2, 5, 6}, 9)-----于400cs铲除1,2,5,6路9列植物, 优先铲除非南瓜
+// RM(400, PUMPKIN, 1, 1)-------铲除1-1南瓜（没有则不铲）
+// RM(400, 1, 1)----------------铲除1-1, 优先铲除非南瓜
+// RM(400, {1, 2, 5, 6}, 9)-----铲除1,2,5,6路9列, 优先铲除非南瓜
 void RM(int time, PlantType target)
 {
     target = _SimpleAvZInternal::non_imitater(target);
     if (target == GRAVE_BUSTER) {
-        _SimpleAvZInternal::error("墓碑吞噬者无法铲除");
+        _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    AvZ::SetTime(time);
+    _SimpleAvZInternal::set_time_and_update(time);
     AvZ::InsertOperation([=]() {
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.type() == target) {
@@ -172,12 +167,21 @@ void RM(int time, PlantType target)
 
 void RM(int time, PlantType target, int row, int col)
 {
-    target = _SimpleAvZInternal::non_imitater(target);
-    if (target == GRAVE_BUSTER) {
-        _SimpleAvZInternal::error("墓碑吞噬者无法铲除");
+    int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
+
+    if (row < 1 || row > max_row) {
+        _SimpleAvZInternal::error("RM", "铲除行应在1~#内\n铲除行: #", max_row, row);
+    }
+    if (col < 1 || col > 8) {
+        _SimpleAvZInternal::error("RM", "铲除列应在1~8内\n铲除列: #", col);
     }
 
-    AvZ::SetTime(time);
+    target = _SimpleAvZInternal::non_imitater(target);
+    if (target == GRAVE_BUSTER) {
+        _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
+    }
+
+    _SimpleAvZInternal::set_time_and_update(time);
     AvZ::InsertOperation([=]() {
         bool found = false;
 
@@ -199,24 +203,27 @@ void RM(int time, PlantType target, int row, int col)
 
 void RM(int time, int row, int col)
 {
-    AvZ::SetTime(time);
+    _SimpleAvZInternal::set_time_and_update(time);
     AvZ::Shovel(row, col);
 }
 
 void RM(int time, const std::vector<int>& rows, int col)
 {
-    AvZ::SetTime(time);
     for (const auto& row : rows)
-        AvZ::Shovel(row, col);
+        RM(time, row, col);
 }
 
-// 使用原版冰
+// 夜间用原版冰. 自带生效时机修正.
+// 若不指定生效时间, 默认在本波 601cs 生效.
 // *** 使用示例：
-// I(1, 2)---------------于1-2放置原版冰, 602生效(完美预判冰)
-// I(leng+10, 1, 2)------于1-2放置原版冰, leng+11生效(ice3)
-void I(int time, int row, int col)
+// I(1, 2)------------------于1-2放置原版冰, 601cs生效(完美预判冰)
+// I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
+// I(359, 1, 2)-------------359cs生效
+void I(Time time, int row, int col)
 {
-    AvZ::SetTime(time - 100 + 1);
+    time.fix_card_time_to_cob = true;
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, {ICE_SHROOM});
+    AvZ::SetTime(effect_time - 100);
     AvZ::Card(ICE_SHROOM, row, col);
 }
 
@@ -225,13 +232,17 @@ void I(int row, int col)
     I(601, row, col);
 }
 
-// 使用复制冰
+// 夜间用复制冰. 自带生效时机修正.
+// 若不指定生效时间, 默认在本波 601cs 生效.
 // *** 使用示例：
-// M_I(1, 2)---------------于1-2放置复制冰,602生效(完美预判冰)
-// M_I(leng+10, 1, 2)------于1-2放置复制冰, leng+11生效(ice3)
-void M_I(int time, int row, int col)
+// M_I(1, 2)------------------于1-2放置复制冰, 601cs生效(完美预判冰)
+// M_I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
+// M_I(359, 1, 2)-------------359cs生效
+void M_I(Time time, int row, int col)
 {
-    AvZ::SetTime(time - 420 + 1);
+    time.fix_card_time_to_cob = true;
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, {M_ICE_SHROOM});
+    AvZ::SetTime(effect_time - 420);
     AvZ::Card(M_ICE_SHROOM, row, col);
     AvZ::SetPlantActiveTime(ICE_SHROOM, 419);
 }
@@ -241,28 +252,30 @@ void M_I(int row, int col)
     M_I(601, row, col);
 }
 
-// 使用卡片
+// 用卡. 可提供单一坐标, 多行同列, 或多卡同坐标.
 // *** 使用示例：
-// C(359, CHERRY, 2, 9)-------------------于2-9放置樱桃, 359cs生效(炮等效)
-// C(400, {PUFF, SUN}, {1, 2}, 9)---------于400cs在1-9放置小喷, 在2-9放置阳光菇
-// C(400, keep(266), ...)-----------------同上，但放置后268cs铲
-// C(400, until(1036), ...)---------------同上，但固定在1036cs铲
-// C(359, {LILY, DOOM, COFFEE}, 3, 9)-----于3-9放置荷叶+核武+咖啡豆, 359cs生效(炮等效)
+// C(359, CHERRY, 2, 9)-------------------于2-9放置樱桃, 359cs生效
+// C(400, {PUFF, SUN}, {1, 2}, 9)---------于1-9放置小喷, 2-9放置阳光菇
+// C(359, {LILY, DOOM, COFFEE}, 3, 9)-----于3-9放置荷叶, 核武, 咖啡豆
 //
-// *** 指定生效时间：
-// C(after(110), ...)------------延迟110cs生效
-// C(exact(800), ...)------------于800cs生效，使用实际时间而非炮等效时间
-// C(after(exact(110)), ...)-----以上二者的结合
+// *** 生效时间的变种:
+// C(after(110), ...)-----------用法同上, 延迟110cs生效
+// C(exact(800), ...)-----------不使用炮等效时间, 800cs生效
+// C(after(exact(..)), ...)-----以上两者的结合
+//
+// *** 指定铲除时机:
+// C(400, keep(266), ...)-------放置后266cs铲
+// C(400, until(1036), ...)-----1036cs铲
 void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_types, const std::vector<int>& rows, int col)
 {
     if (plant_types.empty()) {
-        _SimpleAvZInternal::error("要用的卡片不可为空");
+        _SimpleAvZInternal::error("C", "要用的卡片不可为空");
     }
     if (rows.empty()) {
-        _SimpleAvZInternal::error("使用卡片的行数不可为空");
+        _SimpleAvZInternal::error("C", "用卡行数不可为空");
     }
     if (plant_types.size() != rows.size()) {
-        _SimpleAvZInternal::error("指定的卡片数与指定的行数不一致\n指定卡片数=\n指定行数=#", plant_types.size(), rows.size());
+        _SimpleAvZInternal::error("C", "卡片数与行数不一致\n卡片数: #\n行数: #", plant_types.size(), rows.size());
     }
     auto effect_time = _SimpleAvZInternal::get_effect_time(time, plant_types);
 
@@ -295,7 +308,7 @@ void C(Time time, const std::vector<PlantType>& plant_types, const std::vector<i
 void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_types, int row, int col)
 {
     if (plant_types.empty()) {
-        _SimpleAvZInternal::error("要用的卡片不可为空");
+        _SimpleAvZInternal::error("C", "要用的卡片不可为空");
     }
     auto effect_time = _SimpleAvZInternal::get_effect_time(time, plant_types);
     auto prep_times = _SimpleAvZInternal::get_prep_times(plant_types);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "libavz.h"
-#include "global_vars.h"
 #include "error.h"
+#include "global.h"
+#include "libavz.h"
 #include "util.h"
 
 namespace _SimpleAvZInternal {
@@ -18,7 +18,7 @@ public:
 
 void init(MyWave& wave)
 {
-    last_ash_effect_time = -1;
+    last_set_time = -1;
     AvZ::SetTime(3000, wave.value); // 如果之后没有SetTime, 就会有报错提醒, 而非静默出错
 }
 
@@ -79,7 +79,7 @@ _SimpleAvZInternal::MyWaves waves(Args... args)
     std::vector<_SimpleAvZInternal::MyWave> waves_vec = {_SimpleAvZInternal::MyWave(args)...};
     for (const auto& w : waves_vec) {
         if (w.value <= 0 || w.value > 20) {
-            _SimpleAvZInternal::error("waves中的波数应在1~20内\n当前为waves(" + to_string(waves_vec) + ")");
+            _SimpleAvZInternal::error("waves", "波数应在1~20内\n当前为: waves(" + to_string(waves_vec) + ")");
         }
     }
     return _SimpleAvZInternal::MyWaves(waves_vec);
@@ -88,10 +88,10 @@ _SimpleAvZInternal::MyWaves waves(Args... args)
 _SimpleAvZInternal::MyWaves waves(const std::array<int, 2>& wave_range, int step)
 {
     if (wave_range[0] > wave_range[1]) {
-        _SimpleAvZInternal::error("waves的起始波数应≤终止波数\n起始波数=#\n终止波数=#", wave_range[0], wave_range[1]);
+        _SimpleAvZInternal::error("waves", "起始波数应≤终止波数\n起始波数: #\n终止波数: #", wave_range[0], wave_range[1]);
     }
     if (step <= 0) {
-        _SimpleAvZInternal::error("waves的循环长度应>0\n循环长度=#", step);
+        _SimpleAvZInternal::error("waves", "循环长度应>0\n循环长度: #", step);
     }
     std::vector<_SimpleAvZInternal::MyWave> waves_vec;
     for (int w = wave_range[0]; w <= wave_range[1]; w += step)
