@@ -47,7 +47,7 @@ public:
 
 void init(MyWave& wave)
 {
-    last_set_time = _SimpleAvZInternal::LAST_SET_TIME_INIT_VALUE;
+    _SimpleAvZInternal::global.reset_last_set_time();
     AvZ::SetTime(3000, wave.value); // 如果之后没有SetTime, 就会有报错提醒, 而非静默出错
 }
 

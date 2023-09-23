@@ -25,11 +25,11 @@ void setIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
         }
     }
 
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "setIce");
+    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "setIce");
 
     AvZ::SetTime(effect_time);
-    if (!_SimpleAvZInternal::is_ice_positions_initialized) {
-        _SimpleAvZInternal::is_ice_positions_initialized = true;
+    if (!_SimpleAvZInternal::global.is_ice_positions_initialized) {
+        _SimpleAvZInternal::global.is_ice_positions_initialized = true;
         AvZ::ice_filler.start(ice_positions);
     } else {
         AvZ::ice_filler.resetFillList(ice_positions);

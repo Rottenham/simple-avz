@@ -32,7 +32,7 @@ bool is_instant(std::vector<PlantType> plant_types)
 
 int get_card_effect_time(Time time, const std::vector<PlantType>& plant_types, const std::string& func_name)
 {
-    auto effect_time = get_effect_time(time, func_name);
+    auto effect_time = global.get_effect_time(time, func_name);
     if (time.fix_card_time_to_cob && is_instant(plant_types))
         return effect_time + 1;
     else
@@ -148,7 +148,7 @@ void RM(Time time, PlantType target)
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
 
     AvZ::SetTime(effect_time);
     AvZ::InsertOperation([=]() {
@@ -176,7 +176,7 @@ void RM(Time time, PlantType target, int row, int col)
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
 
     AvZ::SetTime(effect_time);
     AvZ::InsertOperation([=]() {
@@ -200,7 +200,7 @@ void RM(Time time, PlantType target, int row, int col)
 
 void RM(Time time, const std::vector<int>& rows, int col)
 {
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
 
     AvZ::SetTime(effect_time);
     for (const auto& row : rows) {

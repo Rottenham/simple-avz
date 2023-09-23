@@ -13,12 +13,13 @@ private:
 public:
     // 创建 CobOperator. 指定要用炮尾在哪些列的炮.
     // *** 使用示例:
-    // CobOperator c1(1)-----------只用炮尾在1列的炮
-    // CobOperator c45({4, 5})-----只用炮尾在4或5列的炮
-    CobOperator(const std::vector<int>& cols)
+    // CobOperator c1(1)---------只用炮尾在1列的炮
+    // CobOperator c45(4, 5)-----只用炮尾在4或5列的炮
+    template <typename... Args>
+    CobOperator(Args... args)
         : AvZ::PaoOperator()
     {
-        for (const auto& col : cols) {
+        for (const auto col : {args...}) {
             if (col < 1 || col > 8)
                 _SimpleAvZInternal::error("CobOperator 构造函数", "炮尾列应在1~8内\n炮尾列: #", col);
             else if (_SimpleAvZInternal::contains(cob_cols, col))
@@ -28,31 +29,28 @@ public:
         }
     }
 
-    CobOperator(int col)
-        : CobOperator(std::vector<int> {col})
-    {
-    }
-
     CobOperator()
         : AvZ::PaoOperator()
     {
     }
 
-    // 发射激活炮. 六行场地炸 2,5 路, 五行场地炸 2,4 路.
-    // 若省略列数, 默认炸 9 列.
+    // 发射一组并炸炮.
+    // 若省略行数, 默认六行场地炸 2,5 路, 五行场地炸 2,4 路. 若省略列数, 默认炸 9 列.
     // *** 使用示例:
     // c.PP(318)-----------------炸(2,9)与(5,9), 318cs生效
     // c.PP(318, 8)--------------炸(2,8)与(5,8)
     // c.PP(318, {8, 9})---------炸(2,8)与(5,9)
+    // c.PP(318, {2, 6}, 9)------炸(2,9)与(6,9)
     // c.PP(after(110), ...)-----用法同上, 延迟110cs生效
+    void PP(Time time, const std::array<int, 2>& rows, float col)
+    {
+        cob_internal(time, {{rows[0], col}, {rows[1], col}}, "PP");
+    }
+
     void PP(Time time, const std::array<float, 2>& cols)
     {
-        for (const auto& col : cols)
-            if (col < 0 || col > 10) {
-                _SimpleAvZInternal::error("PP", "落点列应在0.0~10.0内\n落点列: #", col);
-            }
         auto row2 = _SimpleAvZInternal::is_backyard() ? 5 : 4;
-        P(time, {{2, cols[0]}, {row2, cols[1]}});
+        cob_internal(time, {{2, cols[0]}, {row2, cols[1]}}, "PP");
     }
 
     void PP(Time time, float col)
@@ -65,21 +63,26 @@ public:
         PP(time, {9, 9});
     }
 
-    // 发射拦截炮. 六行场地炸 1,5 路, 五行场地炸 1,4 路.
-    // 若省略列数, 默认炸 9 列.
+    // 发射一组拦截炮.
+    // 若省略行数, 六行场地炸 1,5 路, 五行场地炸 1,4 路. 若省略列数, 默认炸 9 列.
     // *** 使用示例:
     // c.DD(318)-----------------炸(1,9)与(5,9), 318cs生效
     // c.DD(318, 8)--------------炸(1,8)与(5,8)
     // c.DD(318, {8, 9})---------炸(1,8)与(5,9)
+    // c.DD(318, {2, 5}, 3.5)----炸(2,3.5)与(5,3.5)
     // c.DD(after(110), ...)-----用法同上, 延迟110cs生效
+    void DD(Time time, const std::array<int, 2>& rows, float col)
+    {
+        std::vector<AvZ::Position> positions;
+        for (const auto& row : rows)
+            positions.push_back({row, col});
+        cob_internal(time, positions, "DD");
+    }
+
     void DD(Time time, const std::array<float, 2>& cols)
     {
-        for (const auto& col : cols)
-            if (col < 0 || col > 10) {
-                _SimpleAvZInternal::error("DD", "落点列应在0.0~10.0内\n落点列: #", col);
-            }
         auto row2 = _SimpleAvZInternal::is_backyard() ? 5 : 4;
-        P(time, {{1, cols[0]}, {row2, cols[1]}});
+        cob_internal(time, {{1, cols[0]}, {row2, cols[1]}}, "DD");
     }
 
     void DD(Time time, float col)
@@ -92,55 +95,36 @@ public:
         DD(time, {9, 9});
     }
 
-    // 发射任意门炮. 可提供单个落点, 多行同列, 或多个落点. 也可指明要用哪门炮.
+    // 发射一门炮.
+    // 可提供单个落点, 多行同列, 或多个落点. 也可指明要用哪门炮.
     // *** 使用示例:
-    // c.P(318, 2, 9)-----------------炸(2,9), 318cs生效
-    // c.P(318, {2, 6}, 9)------------炸(2,9)与(6,9)
-    // c.P(318, {{2, 8}, {6, 9}})-----炸(2,8)与(6,9)
-    // c.P(318, 1, 1, 2, 8)-----------使用1-1炮炸(2,8)
-    // c.P(after(110), ...)-----------用法同上, 延迟110cs生效
-    void P(Time time, const std::vector<AvZ::Position>& positions)
-    {
-        int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
-
-        for (const auto& pos : positions) {
-            if (pos.row < 1 || pos.row > max_row) {
-                _SimpleAvZInternal::error("P", "落点行应在1~#内\n落点行: #", max_row, pos.row);
-            }
-            if (pos.col < 0 || pos.col > 10) {
-                _SimpleAvZInternal::error("P", "落点列应在0.0~10.0内\n落点列: #", pos.col);
-            }
-        }
-
-        auto effect_time = _SimpleAvZInternal::get_effect_time(time, "P");
-
-        for (const auto& pos : positions) {
-            auto row = pos.row;
-            auto col = pos.col;
-            if (_SimpleAvZInternal::is_roof()) {
-                AvZ::SetTime(effect_time - 387);
-                PaoOperator::roofPao(row, col);
-            } else if (_SimpleAvZInternal::is_backyard() && AvZ::RangeIn(row, {3, 4})) {
-                AvZ::SetTime(effect_time - 378);
-                PaoOperator::pao(row, col);
-            } else {
-                AvZ::SetTime(effect_time - 373);
-                PaoOperator::pao(row, col);
-            }
-        }
-    }
-
-    void P(Time time, const std::vector<int> rows, float col)
-    {
-        std::vector<AvZ::Position> positions;
-        for (const auto& row : rows)
-            positions.push_back({row, col});
-        P(time, positions);
-    }
-
+    // P(318, 2, 9)-----------------炸(2,9), 318cs生效
+    // P(318, 1, 1, 2, 8)-----------使用1-1炮炸(2,8)
+    // P(after(110), ...)-----------用法同上, 延迟110cs生效
     void P(Time time, int row, float col)
     {
-        P(time, {{row, col}});
+        cob_internal(time, {{row, col}}, "P");
+    }
+
+    void P(Time time, int cob_row, int cob_col, int row, float col)
+    {
+        cob_internal(time, {{row, col}}, "P", {cob_row, cob_col});
+    }
+
+    // 发射分离炮.
+    // *** 使用示例:
+    // c.B(304, 5, 8.225)-----炸(5, 8.225), 304cs生效
+    void B(Time time, int row, float col)
+    {
+        cob_internal(time, {{row, col}}, "B");
+    }
+
+    // 发射拦截炮.
+    // *** 使用示例:
+    // c.D(395, 1, 9)-----炸(1,9), 395cs生效
+    void D(Time time, int row, float col)
+    {
+        cob_internal(time, {{row, col}}, "D");
     }
 
     // 不使用特定炮.
@@ -158,6 +142,7 @@ public:
             _SimpleAvZInternal::error("excludeCob", "炮尾列应在1~8内\n炮尾列: #", col);
         }
 
+        // 保留原定炮序
         AvZ::SetTime(time);
         AvZ::InsertOperation([=]() {
             auto prev_index_vec = pao_index_vec;
@@ -195,6 +180,9 @@ public:
     void virtual beforeScript() override
     {
         initialState();
+        sequential_mode = TIME;
+        next_pao = 0;
+
         if (cob_cols.empty()) {
             AvZ::SetTime(-599, 1);
             autoGetPaoList();
@@ -207,23 +195,85 @@ public:
                             valid_cobs.push_back({p.row() + 1, p.col() + 1});
                     }
 
+                    std::sort(valid_cobs.begin(), valid_cobs.end()); // 按炮位置排序
+
                     AvZ::InsertGuard _(false);
                     resetPaoList(valid_cobs);
                 },
                 "CobOperator::beforeScript");
         }
     }
+
+private:
+    // 主发炮函数
+    void cob_internal(Time time, const std::vector<AvZ::Position>& positions, const std::string& func_name,
+        const AvZ::Grid& specified_cob = {-1, -1})
+    {
+        int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
+
+        for (const auto& pos : positions) {
+            if (pos.row < 1 || pos.row > max_row) {
+                _SimpleAvZInternal::error(func_name, "落点行应在1~#内\n落点行: #", max_row, pos.row);
+            }
+            if (pos.col < 0 || pos.col > 10) {
+                _SimpleAvZInternal::error(func_name, "落点列应在0.0~10.0内\n落点列: #", pos.col);
+            }
+        }
+
+        bool specify_cob = false;
+        if (specified_cob.row != -1 || specified_cob.col != -1) {
+            specify_cob = true;
+            if (specified_cob.row < 1 || specified_cob.row > max_row) {
+                _SimpleAvZInternal::error(func_name, "要用的炮行数应在1~#内\n炮行数: #", max_row, specified_cob.row);
+            }
+            if (specified_cob.col < 1 || specified_cob.col > 8) {
+                _SimpleAvZInternal::error(func_name, "要用的炮尾列应在1~8内\n炮尾列: #", specified_cob.col);
+            }
+        }
+
+        auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, func_name);
+
+        for (const auto& pos : positions) {
+            auto row = pos.row;
+            auto col = pos.col;
+            if (_SimpleAvZInternal::is_roof()) {
+                AvZ::SetTime(effect_time - 387);
+                if (specify_cob)
+                    PaoOperator::rawRoofPao(specified_cob.row, specified_cob.col, row, col);
+                else
+                    PaoOperator::roofPao(row, col);
+            } else if (_SimpleAvZInternal::is_backyard() && AvZ::RangeIn(row, {3, 4})) {
+                AvZ::SetTime(effect_time - 378);
+                if (specify_cob)
+                    PaoOperator::rawPao(specified_cob.row, specified_cob.col, row, col);
+                else
+                    PaoOperator::pao(row, col);
+            } else {
+                AvZ::SetTime(effect_time - 373);
+                if (specify_cob)
+                    PaoOperator::rawPao(specified_cob.row, specified_cob.col, row, col);
+                else
+                    PaoOperator::pao(row, col);
+            }
+        }
+    }
 };
 
 CobOperator cob_operator;
 
-// 发射激活炮. 六行场地炸 2,5 路, 五行场地炸 2,4 路.
-// 若省略列数, 默认炸 9 列.
+// 发射一组并炸炮.
+// 若省略行数, 默认六行场地炸 2,5 路, 五行场地炸 2,4 路. 若省略列数, 默认炸 9 列.
 // *** 使用示例:
 // PP(318)-----------------炸(2,9)与(5,9), 318cs生效
 // PP(318, 8)--------------炸(2,8)与(5,8)
 // PP(318, {8, 9})---------炸(2,8)与(5,9)
+// PP(318, {2, 6}, 9)------炸(2,9)与(6,9)
 // PP(after(110), ...)-----用法同上, 延迟110cs生效
+void PP(Time time, const std::array<int, 2>& rows, float col)
+{
+    cob_operator.PP(time, rows, col);
+}
+
 void PP(Time time, const std::array<float, 2>& cols)
 {
     cob_operator.PP(time, cols);
@@ -239,13 +289,19 @@ void PP(Time time)
     cob_operator.PP(time);
 }
 
-// 发射拦截炮. 六行场地炸 1,5 路, 五行场地炸 1,4 路.
-// 若省略列数, 默认炸 9 列.
+// 发射一组拦截炮.
+// 若省略行数, 六行场地炸 1,5 路, 五行场地炸 1,4 路. 若省略列数, 默认炸 9 列.
 // *** 使用示例:
 // DD(318)-----------------炸(1,9)与(5,9), 318cs生效
 // DD(318, 8)--------------炸(1,8)与(5,8)
 // DD(318, {8, 9})---------炸(1,8)与(5,9)
+// PP(318, {2, 5}, 3.5)----炸(2,3.5)与(5,3.5)
 // DD(after(110), ...)-----用法同上, 延迟110cs生效
+void DD(Time time, const std::array<int, 2>& rows, float col)
+{
+    cob_operator.DD(time, rows, col);
+}
+
 void DD(Time time, const std::array<float, 2>& cols)
 {
     cob_operator.DD(time, cols);
@@ -261,27 +317,30 @@ void DD(Time time)
     cob_operator.DD(time);
 }
 
-// 发射任意门炮.
-// 可提供单个落点, 多行同列, 或多个落点. 也可指明要用哪门炮.
+// 发射一门炮. 可指明要用哪门炮.
 // *** 使用示例:
 // P(318, 2, 9)-----------------炸(2,9), 318cs生效
-// P(318, {2, 6}, 9)------------炸(2,9)与(6,9)
-// P(318, {{2, 8}, {6, 9}})-----炸(2,8)与(6,9)
 // P(318, 1, 1, 2, 8)-----------使用1-1炮炸(2,8)
 // P(after(110), ...)-----------用法同上, 延迟110cs生效
-void P(Time time, const std::vector<AvZ::Position>& positions)
-{
-    cob_operator.P(time, positions);
-}
-
-void P(Time time, const std::vector<int> rows, float col)
-{
-    cob_operator.P(time, rows, col);
-}
-
 void P(Time time, int row, float col)
 {
     cob_operator.P(time, row, col);
+}
+
+// 发射分离炮.
+// *** 使用示例:
+// B(304, 5, 8.225)-----炸(5, 8.225), 304cs生效
+void B(Time time, int row, float col)
+{
+    cob_operator.B(time, row, col);
+}
+
+// 发射拦截炮.
+// *** 使用示例:
+// D(395, 1, 9)-----炸(1,9), 395cs生效
+void D(Time time, int row, float col)
+{
+    cob_operator.D(time, row, col);
 }
 
 // 不使用特定炮.
