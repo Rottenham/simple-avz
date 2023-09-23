@@ -14,11 +14,40 @@ public:
         : value(v)
     {
     }
+    bool operator==(int int_value) const
+    {
+        return value == int_value;
+    }
+
+    bool operator!=(int int_value) const
+    {
+        return value != int_value;
+    }
+
+    bool operator<(int int_value) const
+    {
+        return value < int_value;
+    }
+
+    bool operator>(int int_value) const
+    {
+        return value > int_value;
+    }
+
+    bool operator<=(int int_value) const
+    {
+        return value <= int_value;
+    }
+
+    bool operator>=(int int_value) const
+    {
+        return value >= int_value;
+    }
 };
 
 void init(MyWave& wave)
 {
-    last_set_time = -1;
+    last_set_time = _SimpleAvZInternal::LAST_SET_TIME_INIT_VALUE;
     AvZ::SetTime(3000, wave.value); // 如果之后没有SetTime, 就会有报错提醒, 而非静默出错
 }
 
@@ -85,7 +114,8 @@ _SimpleAvZInternal::MyWaves waves(Args... args)
     return _SimpleAvZInternal::MyWaves(waves_vec);
 }
 
-_SimpleAvZInternal::MyWaves waves(const std::array<int, 2>& wave_range, int step)
+_SimpleAvZInternal::MyWaves waves(const std::array<int, 2>& wave_range, int step,
+    const std::array<int, 2>& ignore_wave_range = {-1, -1})
 {
     if (wave_range[0] > wave_range[1]) {
         _SimpleAvZInternal::error("waves", "起始波数应≤终止波数\n起始波数: #\n终止波数: #", wave_range[0], wave_range[1]);
@@ -93,9 +123,16 @@ _SimpleAvZInternal::MyWaves waves(const std::array<int, 2>& wave_range, int step
     if (step <= 0) {
         _SimpleAvZInternal::error("waves", "循环长度应>0\n循环长度: #", step);
     }
+    if (ignore_wave_range[0] > ignore_wave_range[1]) {
+        _SimpleAvZInternal::error("waves", "忽略起始波数应≤忽略终止波数\n忽略起始波数: #\n忽略终止波数: #", ignore_wave_range[0], ignore_wave_range[1]);
+    }
+
     std::vector<_SimpleAvZInternal::MyWave> waves_vec;
-    for (int w = wave_range[0]; w <= wave_range[1]; w += step)
+    for (int w = wave_range[0]; w <= wave_range[1]; w += step) {
+        if (w >= ignore_wave_range[0] && w <= ignore_wave_range[1])
+            continue;
         waves_vec.push_back(
             _SimpleAvZInternal::MyWave(w));
+    }
     return waves_vec;
 }

@@ -30,20 +30,13 @@ bool is_instant(std::vector<PlantType> plant_types)
     return false;
 }
 
-int get_effect_time(Time time, const std::vector<PlantType>& plant_types)
+int get_card_effect_time(Time time, const std::vector<PlantType>& plant_types, const std::string& func_name)
 {
-    switch (time.type) {
-    case Time::Type::ABS:
-        _SimpleAvZInternal::last_set_time = time.time;
-        if (time.fix_card_time_to_cob)
-            return is_instant(plant_types) ? (time.time + 1) : time.time;
-        else
-            return time.time;
-    case Time::Type::REL:
-        return _SimpleAvZInternal::get_delayed_time_and_update(time.time);
-    default:
-        assert(false);
-    }
+    auto effect_time = get_effect_time(time, func_name);
+    if (time.fix_card_time_to_cob && is_instant(plant_types))
+        return effect_time + 1;
+    else
+        return effect_time;
 }
 
 int get_prep_time(const PlantType& plant_type, const std::vector<PlantType>& all_plants)
@@ -147,14 +140,17 @@ bool get_set_active_time_flag(const PlantType& plant_type)
 // RM(400, PUMPKIN, 1, 1)-------铲除1-1南瓜（没有则不铲）
 // RM(400, 1, 1)----------------铲除1-1, 优先铲除非南瓜
 // RM(400, {1, 2, 5, 6}, 9)-----铲除1,2,5,6路9列, 优先铲除非南瓜
-void RM(int time, PlantType target)
+// RM(after(751), ...)----------用法同上, 延迟751cs生效
+void RM(Time time, PlantType target)
 {
     target = _SimpleAvZInternal::non_imitater(target);
     if (target == GRAVE_BUSTER) {
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    _SimpleAvZInternal::set_time_and_update(time);
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+
+    AvZ::SetTime(effect_time);
     AvZ::InsertOperation([=]() {
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.type() == target) {
@@ -165,15 +161,14 @@ void RM(int time, PlantType target)
         "RM");
 }
 
-void RM(int time, PlantType target, int row, int col)
+void RM(Time time, PlantType target, int row, int col)
 {
     int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
-
     if (row < 1 || row > max_row) {
         _SimpleAvZInternal::error("RM", "铲除行应在1~#内\n铲除行: #", max_row, row);
     }
-    if (col < 1 || col > 8) {
-        _SimpleAvZInternal::error("RM", "铲除列应在1~8内\n铲除列: #", col);
+    if (col < 1 || col > 9) {
+        _SimpleAvZInternal::error("RM", "铲除列应在1~9内\n铲除列: #", col);
     }
 
     target = _SimpleAvZInternal::non_imitater(target);
@@ -181,7 +176,9 @@ void RM(int time, PlantType target, int row, int col)
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    _SimpleAvZInternal::set_time_and_update(time);
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+
+    AvZ::SetTime(effect_time);
     AvZ::InsertOperation([=]() {
         bool found = false;
 
@@ -201,16 +198,19 @@ void RM(int time, PlantType target, int row, int col)
         "RM");
 }
 
-void RM(int time, int row, int col)
+void RM(Time time, const std::vector<int>& rows, int col)
 {
-    _SimpleAvZInternal::set_time_and_update(time);
-    AvZ::Shovel(row, col);
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "RM");
+
+    AvZ::SetTime(effect_time);
+    for (const auto& row : rows) {
+        AvZ::Shovel(row, col);
+    }
 }
 
-void RM(int time, const std::vector<int>& rows, int col)
+void RM(Time time, int row, int col)
 {
-    for (const auto& row : rows)
-        RM(time, row, col);
+    RM(time, {{row}}, col);
 }
 
 // 夜间用原版冰. 自带生效时机修正.
@@ -222,7 +222,7 @@ void RM(int time, const std::vector<int>& rows, int col)
 void I(Time time, int row, int col)
 {
     time.fix_card_time_to_cob = true;
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, {ICE_SHROOM});
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM}, "I");
     AvZ::SetTime(effect_time - 100);
     AvZ::Card(ICE_SHROOM, row, col);
 }
@@ -241,7 +241,7 @@ void I(int row, int col)
 void M_I(Time time, int row, int col)
 {
     time.fix_card_time_to_cob = true;
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, {M_ICE_SHROOM});
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {M_ICE_SHROOM}, "M_I");
     AvZ::SetTime(effect_time - 420);
     AvZ::Card(M_ICE_SHROOM, row, col);
     AvZ::SetPlantActiveTime(ICE_SHROOM, 419);
@@ -277,7 +277,7 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
     if (plant_types.size() != rows.size()) {
         _SimpleAvZInternal::error("C", "卡片数与行数不一致\n卡片数: #\n行数: #", plant_types.size(), rows.size());
     }
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, plant_types);
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "C");
 
     for (int i = 0; i < plant_types.size(); i++) {
         auto plant_type = plant_types.at(i);
@@ -310,7 +310,7 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
     if (plant_types.empty()) {
         _SimpleAvZInternal::error("C", "要用的卡片不可为空");
     }
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, plant_types);
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "C");
     auto prep_times = _SimpleAvZInternal::get_prep_times(plant_types);
     auto set_active_time_flags = _SimpleAvZInternal::get_set_active_time_flags(plant_types);
 

@@ -112,7 +112,7 @@ public:
             }
         }
 
-        auto effect_time = get_effect_time(time);
+        auto effect_time = _SimpleAvZInternal::get_effect_time(time, "P");
 
         for (const auto& pos : positions) {
             auto row = pos.row;
@@ -211,20 +211,6 @@ public:
                     resetPaoList(valid_cobs);
                 },
                 "CobOperator::beforeScript");
-        }
-    }
-
-private:
-    int get_effect_time(Time time)
-    {
-        switch (time.type) {
-        case Time::Type::ABS:
-            _SimpleAvZInternal::last_set_time = time.time;
-            return time.time;
-        case Time::Type::REL:
-            return _SimpleAvZInternal::get_delayed_time_and_update(time.time);
-        default:
-            assert(false);
         }
     }
 };

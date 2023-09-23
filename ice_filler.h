@@ -1,5 +1,6 @@
 #pragma once
 
+#include "card.h"
 #include "global.h"
 #include "libavz.h"
 #include "time.h"
@@ -9,7 +10,7 @@
 // *** 使用示例:
 // setIce({{1, 1}, {1, 2}})-----在1-1, 1-2存冰(优先使用1-2)
 // setIce(400, {...})-----------400cs生效
-void setIce(int time, const std::vector<AvZ::Grid>& ice_positions)
+void setIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
 {
     int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
 
@@ -24,7 +25,9 @@ void setIce(int time, const std::vector<AvZ::Grid>& ice_positions)
         }
     }
 
-    AvZ::SetTime(time);
+    auto effect_time = _SimpleAvZInternal::get_effect_time(time, "setIce");
+
+    AvZ::SetTime(effect_time);
     if (!_SimpleAvZInternal::is_ice_positions_initialized) {
         _SimpleAvZInternal::is_ice_positions_initialized = true;
         AvZ::ice_filler.start(ice_positions);
@@ -48,9 +51,9 @@ void setIce(const std::vector<AvZ::Grid>& ice_positions)
 void I(Time time)
 {
     time.fix_card_time_to_cob = true;
-    auto effect_time = _SimpleAvZInternal::get_effect_time(time, {ICE_SHROOM, COFFEE_BEAN});
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM, COFFEE_BEAN}, "I");
     AvZ::SetTime(effect_time - 299);
-    ice_filler.coffee();
+    AvZ::ice_filler.coffee();
     AvZ::SetPlantActiveTime(ICE_SHROOM, 298);
 }
 
