@@ -22,8 +22,6 @@ int leng1 = 1540;
 
 void Script()
 {
-    ValidateWaves();
-
     OpenMultipleEffective('C');
     SetErrorMode(CONSOLE);
     SetZombies({PJ_0, LZ_2, CG_3, GL_7, BC_12, XC_15, TT_18, FT_21, TL_22, BY_23, HY_32});
@@ -36,7 +34,7 @@ void Script()
         c5.P(295, 4, 9);
         c7.P(295, 4, 9);
         c3.D(after(110), 2, 9);
-        c7.D(after(0), 4, 9);
+        c7.D(now, 4, 9);
 
         C(601, {POT, ICE}, 1, 9);
     }
@@ -77,7 +75,7 @@ void Script()
         c5.P(leng1 - 200, 2, 8.4125);
         c1.P(leng1 - 200, 5, 8.4125);
         c3.D(after(207), 2, 9);
-        c7.D(after(0), 4, 9);
+        c7.D(now, 4, 9);
 
         C(260, until(1250), CHOMPER, 1, 9);
         C(after(751), until(1250), CHOMPER, 2, 9);
@@ -87,9 +85,9 @@ void Script()
     for (auto w : waves(5, 14)) {
         C(27, POT, 1, 9);
         C(227, CHERRY, 1, 9);
-        c3.P(after(0), 4, 8.7875);
+        c3.P(now, 4, 8.7875);
         c3.D(after(110), 2, 8.175);
-        c7.D(after(0), 4, 8.175);
+        c7.D(now, 4, 8.175);
 
         if (w == 5) {
             C(396, keep(134), TALL_NUT, 1, 9);
@@ -102,9 +100,9 @@ void Script()
     for (auto w : waves(6, 15)) {
         C(293, {POT, DOOM}, w == 6 ? 4 : 3, 9);
         c1.D(after(121), 2, 8.4);
-        c5.D(after(0), 4, 8.4);
+        c5.D(now, 4, 8.4);
         c3.D(after(119), 2, 8.3875);
-        c5.D(after(0), 4, 8.4);
+        c5.D(now, 4, 8.4);
     }
 
     // PPDDDD
@@ -112,9 +110,9 @@ void Script()
         c1.P(379, 2, 9);
         c7.P(379, 4, 9);
         c3.D(after(121), 2, 9);
-        c1.D(after(0), 4, 9);
+        c1.D(now, 4, 9);
         c1.D(after(134), 2, 8.9125);
-        c5.D(after(0), 4, 8.7125);
+        c5.D(now, 4, 8.7125);
 
         C(606, {POT, ICE}, 1, 9);
     }

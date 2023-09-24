@@ -18,32 +18,20 @@ public:
 
     void virtual afterScript() override
     {
-        if (global.validate_waves_integrity) {
-            int count[21] = {};
+        int count[21] = {};
 
-            for (int w : waves) {
-                count[w]++;
-            }
+        for (int w : waves) {
+            count[w]++;
+        }
 
-            std::vector<int> missing_waves;
-            for (int i = 1; i <= 20; i++) {
-                if (count[i] == 0) {
-                    missing_waves.push_back(i);
-                }
+        std::vector<int> duplicate_waves;
+        for (int i = 1; i <= 20; i++) {
+            if (count[i] > 1) {
+                duplicate_waves.push_back(i);
             }
-            if (!missing_waves.empty()) {
-                error("waves 完整性检查", "缺少波数: " + concat(ints_to_strings(missing_waves), ","));
-            }
-
-            std::vector<int> duplicate_waves;
-            for (int i = 1; i <= 20; i++) {
-                if (count[i] > 1) {
-                    duplicate_waves.push_back(i);
-                }
-            }
-            if (!duplicate_waves.empty()) {
-                error("waves 完整性检查", "重复的波数: " + concat(ints_to_strings(duplicate_waves), ","));
-            }
+        }
+        if (!duplicate_waves.empty()) {
+            error("waves", "waves调用的波次不可重复.\n重复的波次: " + concat(ints_to_strings(duplicate_waves), ","));
         }
     }
 };
@@ -195,11 +183,4 @@ _SimpleAvZInternal::Waves waves(const std::array<int, 2>& wave_range, int step)
     }
 
     return _SimpleAvZInternal::Waves(_SimpleAvZInternal::wave_range_to_waves_vec(wave_range, step, "waves"));
-}
-
-// 检查 waves() 设置完整性, 是否调用 w1~w20 每波正好一次.
-// 强烈建议写完脚本后使用本函数.
-void ValidateWaves()
-{
-    _SimpleAvZInternal::global.validate_waves_integrity = true;
 }

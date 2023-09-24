@@ -18,8 +18,6 @@ int leng2 = 1887;
 
 void Script()
 {
-    ValidateWaves();
-
     OpenMultipleEffective('C');
     SetErrorMode(CONSOLE);
     SetZombies({PJ_0, LZ_2, CG_3, WW_8, BC_12, HT_14, XC_15, QQ_16, KG_17, TT_18, FT_21, BY_23, HY_32});
@@ -84,7 +82,7 @@ void Script()
         PP(4300, 8.6);
     }
 
-    // PSd / PAd
+    // PSd/PAd
     for (auto w : waves(10)) {
         PP(249);
         P(333, 2, 9);
