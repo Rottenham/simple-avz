@@ -32,15 +32,12 @@ Time after(int t)
     return {Time::Type::REL, t, true};
 }
 
-Time after(Time t)
-{
-    t.type = Time::Type::REL;
-    return t;
-}
+const auto now = after(0);
 
-Time exact(int t)
+Time exact(Time t)
 {
-    return {Time::Type::ABS, t, false};
+    t.fix_card_time_to_cob = false;
+    return t;
 }
 
 struct ShovelTime {

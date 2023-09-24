@@ -18,3 +18,4 @@
 #define COB COB_CANNON
 
 #define M_ICE M_ICE_SHROOM
+#define M_DOOM M_DOOM_SHROOM

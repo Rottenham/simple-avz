@@ -1,5 +1,5 @@
 /*
- * 脚本作者: Crescendo(space.bilibili.com/8252252), 2023
+ * 脚本作者: Crescendo(https://space.bilibili.com/8252252), 2023
  * 可自由复制, 转载, 修改本脚本, 但请注明出处. 不可从源代码中删去本段落.
  *
  * 阵型名: [PE]最后之作
@@ -25,21 +25,21 @@ void Script()
     SetZombies({PJ_0, LZ_2, CG_3, WW_8, BC_12, HT_14, XC_15, QQ_16, KG_17, TT_18, FT_21, BY_23, HY_32});
     SelectCards({ICE, M_ICE, COFFEE, LILY, DOOM, CHERRY, PUFF, POT, SNOW_PEA, WALL_NUT});
 
-    // ND / NSA
+    // ND/NSA
     for (auto w : waves(1)) {
         C(249, {DOOM, COFFEE}, 3, 9);
         P(249, 5, 9);
         D(after(110), 1, 7.8);
-        C(after(0), CHERRY, 5, 9);
+        C(now, CHERRY, 5, 9);
 
         C(-599, LILY, 3, 9);
         C(after(751), LILY, 3, 3);
-        SetIce(after(0), {{1, 5}, {6, 5}, {3, 3}});
+        SetIce(now, {{1, 5}, {6, 5}, {3, 3}});
         C(after(751), LILY, 4, 3);
-        SetIce(after(0), {{1, 5}, {6, 5}, {3, 3}, {4, 3}});
+        SetIce(now, {{1, 5}, {6, 5}, {3, 3}, {4, 3}});
     }
 
-    // PSD / B
+    // PSD/B
     for (auto w : waves(2)) {
         PP(249, {2, 2}, 9);
         D(after(110), 1, 9);
@@ -107,7 +107,7 @@ void Script()
         PP(310);
         PP(310);
         PP(after(100));
-        PP(after(0));
-        PP(after(0), 4.5);
+        PP(now);
+        PP(now, 4.5);
     }
 }
