@@ -12,11 +12,13 @@ private:
 
 public:
     bool is_ice_positions_initialized = false;
+    bool validate_waves_integrity = false;
 
     void virtual beforeScript() override
     {
         last_set_time = LAST_SET_TIME_INIT_VALUE;
         is_ice_positions_initialized = false;
+        validate_waves_integrity = true;
     }
 
     // 获得延迟时间, 并且更新[last_set_time]

@@ -132,6 +132,25 @@ bool get_set_active_time_flag(const PlantType& plant_type)
     return get_set_active_time_flags({{plant_type}}).front();
 }
 
+void remove_all(int time, int row, int col)
+{
+    AvZ::SetTime(time);
+    AvZ::InsertOperation([=]() {
+        auto plant_num = 0;
+        for (auto& p : AvZ::alive_plant_filter) {
+            if (p.row() + 1 == row) {
+                if (p.col() + 1 == col)
+                    plant_num++;
+                else if (p.col() == col && p.type() == COB_CANNON)
+                    plant_num++;
+            }
+        }
+        for (int i = 0; i < plant_num; i++)
+            AvZ::ShovelNotInQueue(row, col);
+    },
+        "remove_all");
+}
+
 } // namespace _SimpleAvZInternal
 
 // 铲除植物. 可提供单一坐标, 多行同列. 也可指定要铲除的植物种类.
@@ -215,13 +234,16 @@ void RM(Time time, int row, int col)
 
 // 夜间用原版冰. 自带生效时机修正.
 // 若不指定生效时间, 默认在本波 601cs 生效.
-// *** 使用示例：
+// *** 使用示例:
 // I(1, 2)------------------于1-2放置原版冰, 601cs生效(完美预判冰)
 // I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
 // I(359, 1, 2)-------------359cs生效
 void I(Time time, int row, int col)
 {
-    time.fix_card_time_to_cob = true;
+    if (!_SimpleAvZInternal::is_night()) {
+        _SimpleAvZInternal::error("I", "不可在白昼使用夜间版本的I()\n无需提供用冰位置");
+    }
+
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM}, "I");
     AvZ::SetTime(effect_time - 100);
     AvZ::Card(ICE_SHROOM, row, col);
@@ -234,13 +256,16 @@ void I(int row, int col)
 
 // 夜间用复制冰. 自带生效时机修正.
 // 若不指定生效时间, 默认在本波 601cs 生效.
-// *** 使用示例：
+// *** 使用示例:
 // M_I(1, 2)------------------于1-2放置复制冰, 601cs生效(完美预判冰)
 // M_I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
 // M_I(359, 1, 2)-------------359cs生效
 void M_I(Time time, int row, int col)
 {
-    time.fix_card_time_to_cob = true;
+    if (!_SimpleAvZInternal::is_night()) {
+        _SimpleAvZInternal::error("M_I", "M_I为夜间复制冰函数, 不可在白昼使用");
+    }
+
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {M_ICE_SHROOM}, "M_I");
     AvZ::SetTime(effect_time - 420);
     AvZ::Card(M_ICE_SHROOM, row, col);
@@ -253,7 +278,7 @@ void M_I(int row, int col)
 }
 
 // 用卡. 可提供单一坐标, 多行同列, 或多卡同坐标.
-// *** 使用示例：
+// *** 使用示例:
 // C(359, CHERRY, 2, 9)-------------------于2-9放置樱桃, 359cs生效
 // C(400, {PUFF, SUN}, {1, 2}, 9)---------于1-9放置小喷, 2-9放置阳光菇
 // C(359, {LILY, DOOM, COFFEE}, 3, 9)-----于3-9放置荷叶, 核武, 咖啡豆
@@ -266,6 +291,7 @@ void M_I(int row, int col)
 // *** 指定铲除时机:
 // C(400, keep(266), ...)-------放置后266cs铲
 // C(400, until(1036), ...)-----1036cs铲
+// 注意: 容器会被一并铲除.
 void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_types, const std::vector<int>& rows, int col)
 {
     if (plant_types.empty()) {
@@ -289,13 +315,13 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
         AvZ::SetTime(effect_time - prep_time);
         AvZ::Card(plant_type, row, col);
         if (set_active_time)
-            AvZ::SetPlantActiveTime(plant_type, prep_time - 1);
+            AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                RM(effect_time + shovel_time.time, plant_type, row, col);
+                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col);
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                RM(shovel_time.time, plant_type, row, col);
+                _SimpleAvZInternal::remove_all(shovel_time.time, row, col);
         }
     }
 }
@@ -322,13 +348,13 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
         AvZ::SetTime(effect_time - prep_time);
         AvZ::Card(plant_type, row, col);
         if (set_active_time)
-            AvZ::SetPlantActiveTime(plant_type, prep_time - 1);
+            AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                RM(effect_time + shovel_time.time, plant_type, row, col);
+                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col);
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                RM(shovel_time.time, plant_type, row, col);
+                _SimpleAvZInternal::remove_all(shovel_time.time, row, col);
         }
     }
 }

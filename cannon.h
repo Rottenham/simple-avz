@@ -129,17 +129,17 @@ public:
 
     // 不使用特定炮.
     // *** 使用用例:
-    // c.excludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
-    // c.excludeCob(400, ...)-----400cs起效
-    void excludeCob(int time, int row, int col)
+    // c.ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
+    // c.ExcludeCob(400, ...)-----400cs起效
+    void ExcludeCob(int time, int row, int col)
     {
         int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
 
         if (row < 1 || row > max_row) {
-            _SimpleAvZInternal::error("excludeCob", "炮行数应在1~#内\n炮行数: #", max_row, row);
+            _SimpleAvZInternal::error("ExcludeCob", "炮行数应在1~#内\n炮行数: #", max_row, row);
         }
         if (col < 1 || col > 8) {
-            _SimpleAvZInternal::error("excludeCob", "炮尾列应在1~8内\n炮尾列: #", col);
+            _SimpleAvZInternal::error("ExcludeCob", "炮尾列应在1~8内\n炮尾列: #", col);
         }
 
         // 保留原定炮序
@@ -159,19 +159,19 @@ public:
             AvZ::InsertGuard _(false);
             resetPaoList(valid_cobs);
         },
-            "CobOperator::excludeCob");
+            "CobOperator::ExcludeCob");
     }
 
-    void excludeCob(int row, int col)
+    void ExcludeCob(int row, int col)
     {
         AvZ::SetTime(-599, 1);
-        excludeCob(-599, row, col);
+        ExcludeCob(-599, row, col);
     }
 
     // 重置为使用所有炮.
     // *** 使用用例:
-    // c.resetCob(400)-----重置为使用所有炮, 400cs起效
-    void resetCob(int time)
+    // c.ResetCob(400)-----重置为使用所有炮, 400cs起效
+    void ResetCob(int time)
     {
         AvZ::SetTime(time);
         autoGetPaoList();
@@ -345,22 +345,22 @@ void D(Time time, int row, float col)
 
 // 不使用特定炮.
 // *** 使用用例:
-// excludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
-// excludeCob(400, ...)-----400cs起效
-void excludeCob(int time, int row, int col)
+// ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
+// ExcludeCob(400, ...)-----400cs起效
+void ExcludeCob(int time, int row, int col)
 {
-    cob_operator.excludeCob(time, row, col);
+    cob_operator.ExcludeCob(time, row, col);
 }
 
-void excludeCob(int row, int col)
+void ExcludeCob(int row, int col)
 {
-    cob_operator.excludeCob(row, col);
+    cob_operator.ExcludeCob(row, col);
 }
 
 // 重置为使用所有炮.
 // *** 使用用例:
-// resetCob(400)-----重置为使用所有炮, 400cs起效
-void resetCob(int time)
+// ResetCob(400)-----重置为使用所有炮, 400cs起效
+void ResetCob(int time)
 {
-    cob_operator.resetCob(time);
+    cob_operator.ResetCob(time);
 }
