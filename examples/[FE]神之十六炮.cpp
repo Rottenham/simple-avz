@@ -76,7 +76,7 @@ void Script()
         C(793, until(1262), GARLIC, 5, 9);
     }
 
-    // NNDD
+    // NDD
     for (auto w : waves(5, 14)) {
         C(236, {LILY, DOOM}, w == 5 ? 3 : 4, 9);
         DD(after(114), 8.15);
@@ -129,7 +129,8 @@ void Script()
         DD(after(227), 8.675);
         PP(2271, {3, 4}, 9);
         PP(3275, {1, 6}, 1);
-        PP(4300, {1, 6}, 7);
+        PP(4300, {1, 6}, 6);
+        PP(now, {1, 6}, 8.5);
 
         C(803, until(1174), POT, 2, 9);
         C(433, until(525), BLOVER, 5, 9);
@@ -156,7 +157,7 @@ void Script()
     for (auto w : waves(18)) {
         PP(433, {1, 5}, 7.4125);
         B(1175, 3, 8.1625);
-        PP(leng4 - 200, {1, 5}, 8.3875);
+        PP(leng4 - 200, 8.3875);
         DD(after(233), {7.4125, 8.325});
 
         C(774, until(1220), POT, 2, 9);

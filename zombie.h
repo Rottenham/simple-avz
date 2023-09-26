@@ -8,7 +8,6 @@
 namespace _SimpleAvZInternal {
 
 const std::set<ZombieType> AQUATIC_ZOMBIES = {SNORKEL_ZOMBIE, DOLPHIN_RIDER_ZOMBIE};
-const std::set<ZombieType> AMPHIBIOUS_ZOMBIES = {ZOMBIE, FLAG_ZOMBIE, CONEHEAD_ZOMBIE, BUCKETHEAD_ZOMBIE};
 const std::set<ZombieType> INVALID_ZOMBIES = {BACKUP_DANCER, ZOMBIE_BOBSLED_TEAM, BUNGEE_ZOMBIE, IMP};
 
 struct EnsureExistInfo {
@@ -51,13 +50,9 @@ public:
                 if (rows.count(3) + rows.count(4) != rows.size()) {
                     error("EnsureExist", "非水路不出潜水与海豚\n" + detail_str);
                 }
-            } else if (AMPHIBIOUS_ZOMBIES.count(zombie_type)) {
-                if ((rows.count(3) || rows.count(4)) && global.last_effect_wave <= 5) {
-                    error("EnsureExist", "水路w1~w5不出鸭子\n" + detail_str);
-                }
             } else {
-                if (rows.count(3) || rows.count(4)) {
-                    error("EnsureExist", "水路不出陆地僵尸\n" + detail_str);
+                if ((rows.count(3) || rows.count(4))) {
+                    error("EnsureExist", "暂不支持在水路设定潜水与海豚之外的僵尸\n" + detail_str);
                 }
             }
         } else {
@@ -91,9 +86,6 @@ public:
                 new_rows = {1, 2, 3, 4, 5, 6};
                 if (AQUATIC_ZOMBIES.count(zombie_type)) {
                     new_rows = {3, 4};
-                } else if (AMPHIBIOUS_ZOMBIES.count(zombie_type)) {
-                    if (AvZ::GetRunningWave() <= 5)
-                        new_rows = {1, 2, 5, 6};
                 } else {
                     new_rows = {1, 2, 5, 6};
                 }
@@ -147,7 +139,12 @@ void EnsureExist(const std::vector<_SimpleAvZInternal::EnsureExistInfo>& ensure_
             auto zombie = zombie_array + i;
             if (zombie->isDead() || zombie->isDisappeared())
                 continue;
-            if (zombie->existTime() < 5) // 只考虑本波僵尸
+
+            if (zombie->existTime() > 5) // 只考虑本波僵尸
+                continue;
+
+            if (_SimpleAvZInternal::is_backyard() && AvZ::RangeIn(zombie->row() + 1, {3, 4})
+                && !_SimpleAvZInternal::AQUATIC_ZOMBIES.count((ZombieType)zombie->type())) // 无视后院水路潜水,海豚以外的僵尸
                 continue;
 
             zombie_index[zombie->type()][zombie->row() + 1].push_back(i);
