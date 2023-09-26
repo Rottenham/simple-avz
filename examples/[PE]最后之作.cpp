@@ -8,7 +8,7 @@
  * 说明: 原阵型作者光锥维, 优化ch4解作者ng收割机
  */
 
-#include "SimpleAvZ/lib.h" // v1.0
+#include "SimpleAvZ/lib.h" // v1.0.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;

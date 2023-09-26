@@ -195,10 +195,10 @@ void validate_shovel_position(int row, int col, const std::string& func_name)
 {
     int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
     if (row < 1 || row > max_row) {
-        _SimpleAvZInternal::error("RM", "铲除行应在1~#内\n铲除行: #", max_row, row);
+        _SimpleAvZInternal::error(func_name, "铲除行应在1~#内\n铲除行: #", max_row, row);
     }
     if (col < 1 || col > 9) {
-        _SimpleAvZInternal::error("RM", "铲除列应在1~9内\n铲除列: #", col);
+        _SimpleAvZInternal::error(func_name, "铲除列应在1~9内\n铲除列: #", col);
     }
 }
 

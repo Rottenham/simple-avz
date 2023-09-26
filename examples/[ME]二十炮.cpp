@@ -8,7 +8,7 @@
  * 说明: C7u-C8u融合解作者Crescendo
  */
 
-#include "SimpleAvZ/lib.h" // v1.0
+#include "SimpleAvZ/lib.h" // v1.0.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;
@@ -65,9 +65,11 @@ void Script()
 
         C(8, POT, 2, 9);
         M_I(601 + 34, 2, 9);
+
+        EnsureExist({GARG, 4});
     }
 
-    // IJa-B-PPDD
+    // I'Ja-B-PPDD
     for (auto w : waves(4, 13)) {
         C(258, {POT, JALA}, 1, 9);
         C(302, SQUASH, 2, 9);
@@ -79,6 +81,8 @@ void Script()
 
         C(260, until(1250), CHOMPER, 1, 9);
         C(after(751), until(1250), CHOMPER, 2, 9);
+
+        EnsureExist({ZOMBONI, 2});
     }
 
     // APDD
@@ -129,6 +133,8 @@ void Script()
         C(160, until(1160), CHOMPER, 1, 9);
         C(after(751), until(1160), CHOMPER, 5, 9);
         C(750, POT, 5, 9);
+
+        EnsureExist({ZOMBONI, 1});
     }
 
     // PDD/PD-I'收尾
@@ -170,8 +176,8 @@ void Script()
         c1.D(after(220), 2, 9.2);
         c1.D(after(220), 2, 9.2);
         c7.P(1112, 4, 9);
-        c3.D(after(220), 4, 9);
-        c1.D(after(220), 4, 9);
+        c3.D(after(220), 4, 9.2);
+        c1.D(after(220), 4, 9.2);
 
         C(2383, {POT, CHERRY}, 2, 9);
         c5.P(2383, 4, 9);
