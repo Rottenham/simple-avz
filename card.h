@@ -55,19 +55,12 @@ int get_prep_time(const PlantType& plant_type, const std::vector<PlantType>& all
         prep_time = 100;
     } else if (non_im_plant_type == SQUASH) {
         prep_time = 182;
-    } else if (contains({ICE_SHROOM, DOOM_SHROOM}, non_im_plant_type)) {
-        if (is_night_time())
-            prep_time = 100;
-        else if (contains(all_plants, COFFEE_BEAN))
-            prep_time = 299;
-        else if (contains(all_plants, M_COFFEE_BEAN))
-            prep_time = 299 + 320;
-    } else if (non_im_plant_type == COFFEE_BEAN) {
-        if (contains(all_plants, {ICE_SHROOM}) || contains(all_plants, {DOOM_SHROOM})
-            || contains(all_plants, {M_ICE_SHROOM}) || contains(all_plants, {M_DOOM_SHROOM}))
-            prep_time = 299;
-        else
-            return 0;
+    } else if (contains(all_plants, COFFEE_BEAN)) {
+        prep_time = 299;
+    } else if (contains(all_plants, M_COFFEE_BEAN)) {
+        prep_time = 299 + 320;
+    } else if (contains({ICE_SHROOM, DOOM_SHROOM}, non_im_plant_type) && is_night_time()) {
+        prep_time = 100;
     } else {
         return 0;
     }
@@ -132,23 +125,32 @@ bool get_set_active_time_flag(const PlantType& plant_type)
     return get_set_active_time_flags({{plant_type}}).front();
 }
 
-void remove_all(int time, int row, int col, const std::string& func_name)
+// 如果存在目标植物, 则铲之
+// 除此之外, 若仅有容器, 则也铲之, 否则不铲
+void shovel_with_container(int time, PlantType target, int row, int col, const std::string& func_name)
 {
+    target = non_imitater(target);
     set_time_inside(time, func_name);
     AvZ::InsertOperation([=]() {
-        auto plant_num = 0;
+        bool shovel_container = true;
+        int container_num = 0;
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.row() + 1 == row) {
-                if (p.col() + 1 == col)
-                    plant_num++;
-                else if (p.col() == col && p.type() == COB_CANNON)
-                    plant_num++;
+                if (p.col() + 1 == col || (p.col() == col && p.type() == COB_CANNON)) {
+                    if (p.type() == target)
+                        AvZ::ShovelNotInQueue(row, col, target == PUMPKIN);
+                    else if (p.type() == LILY_PAD || p.type() == FLOWER_POT)
+                        container_num++;
+                    else
+                        shovel_container = false;
+                }
             }
         }
-        for (int i = 0; i < plant_num; i++)
-            AvZ::ShovelNotInQueue(row, col);
+        if (shovel_container)
+            for (int i = 0; i < container_num; i++)
+                AvZ::ShovelNotInQueue(row, col);
     },
-        func_name + "-->remove_all");
+        func_name + "-->shovel_with_container");
 }
 
 std::set<PlantType> get_invalid_plants(int row)
@@ -369,9 +371,9 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C");
+                _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C");
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C");
+                _SimpleAvZInternal::shovel_with_container(shovel_time.time, plant_type, row, col, "C");
         }
     }
 }
@@ -406,9 +408,9 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C");
+                _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C");
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C");
+                _SimpleAvZInternal::shovel_with_container(shovel_time.time, plant_type, row, col, "C");
         }
     }
 }
@@ -450,9 +452,9 @@ void C_IF(const std::function<bool(int)>& condition, Time time, ShovelTime shove
                 AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
             if (shovel_time.type != ShovelTime::Type::NONE) {
                 if (shovel_time.type == ShovelTime::Type::KEEP)
-                    _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C_IF");
+                    _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C_IF");
                 else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                    _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C_IF");
+                    _SimpleAvZInternal::shovel_with_container(shovel_time.time, plant_type, row, col, "C_IF");
             }
         }
     },

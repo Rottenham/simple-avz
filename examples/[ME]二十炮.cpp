@@ -1,5 +1,5 @@
 /*
- * 脚本作者: Crescendo(space.bilibili.com/8252252), 2023
+ * 脚本作者: Crescendo(https://space.bilibili.com/8252252), 2023
  * 可自由复制, 转载, 修改本脚本, 但请注明出处. 不可从源代码中删去本段落.
  *
  * 阵型名: [ME]二十炮

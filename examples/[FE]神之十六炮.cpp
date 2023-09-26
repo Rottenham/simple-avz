@@ -1,5 +1,5 @@
 /*
- * 脚本作者: Crescendo(space.bilibili.com/8252252), 2023
+ * 脚本作者: Crescendo(https://space.bilibili.com/8252252), 2023
  * 可自由复制, 转载, 修改本脚本, 但请注明出处. 不可从源代码中删去本段落.
  *
  * 阵型名: [FE]神之十六炮
@@ -92,7 +92,7 @@ void Script()
         C(after(201), JALA, 5, 9);
         P(after(110), 5, 8.8);
 
-        C(405, keep(539), TALL_NUT, 2, 9);
+        C(405, keep(134), TALL_NUT, 2, 9);
     }
 
     // PPdd
