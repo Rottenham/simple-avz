@@ -7,9 +7,6 @@
 #include "util.h"
 
 class CobOperator : public AvZ::PaoOperator {
-private:
-    std::vector<int> cob_cols;
-
 public:
     // 创建 CobOperator. 指定要用炮尾在哪些列的炮.
     // *** 使用示例:
@@ -19,13 +16,12 @@ public:
     CobOperator(Args... args)
         : AvZ::PaoOperator()
     {
-        for (const auto col : {args...}) {
-            if (col < 1 || col > 8)
-                _SimpleAvZInternal::error("CobOperator 构造函数", "炮尾列应在1~8内\n炮尾列: #", col);
-            else if (_SimpleAvZInternal::contains(cob_cols, col))
+        for (int col : {args...}) {
+            validate_cob_col(col, "CobOperator 构造函数");
+            if (cob_cols.count(col)) {
                 _SimpleAvZInternal::error("CobOperator 构造函数", "不可重复指定炮尾列\n重复的炮尾列: #", col);
-            else
-                cob_cols.push_back(col);
+            }
+            cob_cols.insert(col);
         }
     }
 
@@ -129,51 +125,26 @@ public:
 
     // 不使用特定炮.
     // *** 使用用例:
-    // c.ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
+    // c.ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效[外]
     // c.ExcludeCob(400, ...)-----400cs起效
-    void ExcludeCob(int time, int row, int col)
+    void ExcludeCob(Time time, int row, int col)
     {
-        int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
-
-        if (row < 1 || row > max_row) {
-            _SimpleAvZInternal::error("ExcludeCob", "炮行数应在1~#内\n炮行数: #", max_row, row);
-        }
-        if (col < 1 || col > 8) {
-            _SimpleAvZInternal::error("ExcludeCob", "炮尾列应在1~8内\n炮尾列: #", col);
-        }
-
-        // 保留原定炮序
-        AvZ::SetTime(time);
-        AvZ::InsertOperation([=]() {
-            auto prev_index_vec = pao_index_vec;
-            auto excluded_index = AvZ::GetPlantIndex(row, col, COB_CANNON);
-            std::vector<AvZ::Grid> valid_cobs;
-
-            auto plant_array = AvZ::GetMainObject()->plantArray();
-            for (const auto& index : pao_index_vec) {
-                if (index != excluded_index)
-                    valid_cobs.push_back({plant_array[index].row() + 1,
-                        plant_array[index].col() + 1});
-            }
-
-            AvZ::InsertGuard _(false);
-            resetPaoList(valid_cobs);
-        },
-            "CobOperator::ExcludeCob");
+        _SimpleAvZInternal::get_effect_time_and_set_time(time, "ExcludeCob");
+        exclude_cob_internal(row, col);
     }
 
     void ExcludeCob(int row, int col)
     {
-        AvZ::SetTime(-599, 1);
-        ExcludeCob(-599, row, col);
+        _SimpleAvZInternal::set_time_outside(-599, 1, "ExcludeCob");
+        exclude_cob_internal(row, col);
     }
 
     // 重置为使用所有炮.
     // *** 使用用例:
     // c.ResetCob(400)-----重置为使用所有炮, 400cs起效
-    void ResetCob(int time)
+    void ResetCob(Time time)
     {
-        AvZ::SetTime(time);
+        _SimpleAvZInternal::get_effect_time_and_set_time(time, "ResetCob");
         autoGetPaoList();
     }
 
@@ -191,7 +162,7 @@ public:
                 -599, 1, [=]() {
                     std::vector<AvZ::Grid> valid_cobs;
                     for (auto& p : AvZ::alive_plant_filter) {
-                        if (p.type() == COB_CANNON && _SimpleAvZInternal::contains(cob_cols, p.col() + 1))
+                        if (p.type() == COB_CANNON && cob_cols.count(p.col() + 1))
                             valid_cobs.push_back({p.row() + 1, p.col() + 1});
                     }
 
@@ -205,6 +176,23 @@ public:
     }
 
 private:
+    std::set<int> cob_cols;
+
+    void validate_cob_row(int row, const std::string& func_name)
+    {
+        int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
+        if (row < 1 || row > max_row) {
+            _SimpleAvZInternal::error(func_name, "炮行数应在1~#内\n炮行数: #", max_row, row);
+        }
+    }
+
+    void validate_cob_col(int col, const std::string& func_name)
+    {
+        if (col < 1 || col > 8) {
+            _SimpleAvZInternal::error(func_name, "炮尾列应在1~8内\n炮尾列: #", col);
+        }
+    }
+
     // 主发炮函数
     void cob_internal(Time time, const std::vector<AvZ::Position>& positions, const std::string& func_name,
         const AvZ::Grid& specified_cob = {-1, -1})
@@ -223,39 +211,59 @@ private:
         bool specify_cob = false;
         if (specified_cob.row != -1 || specified_cob.col != -1) {
             specify_cob = true;
-            if (specified_cob.row < 1 || specified_cob.row > max_row) {
-                _SimpleAvZInternal::error(func_name, "要用的炮行数应在1~#内\n炮行数: #", max_row, specified_cob.row);
-            }
-            if (specified_cob.col < 1 || specified_cob.col > 8) {
-                _SimpleAvZInternal::error(func_name, "要用的炮尾列应在1~8内\n炮尾列: #", specified_cob.col);
-            }
+            validate_cob_row(specified_cob.row, func_name);
+            validate_cob_col(specified_cob.col, func_name);
         }
 
-        auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, func_name);
+        auto effect_time = _SimpleAvZInternal::get_effect_time(time, func_name);
 
         for (const auto& pos : positions) {
             auto row = pos.row;
             auto col = pos.col;
             if (_SimpleAvZInternal::is_roof()) {
-                AvZ::SetTime(effect_time - 387);
+                _SimpleAvZInternal::set_time_inside(effect_time - 387, func_name);
                 if (specify_cob)
                     PaoOperator::rawRoofPao(specified_cob.row, specified_cob.col, row, col);
                 else
                     PaoOperator::roofPao(row, col);
             } else if (_SimpleAvZInternal::is_backyard() && AvZ::RangeIn(row, {3, 4})) {
-                AvZ::SetTime(effect_time - 378);
+                _SimpleAvZInternal::set_time_inside(effect_time - 378, func_name);
                 if (specify_cob)
                     PaoOperator::rawPao(specified_cob.row, specified_cob.col, row, col);
                 else
                     PaoOperator::pao(row, col);
             } else {
-                AvZ::SetTime(effect_time - 373);
+                _SimpleAvZInternal::set_time_inside(effect_time - 373, func_name);
                 if (specify_cob)
                     PaoOperator::rawPao(specified_cob.row, specified_cob.col, row, col);
                 else
                     PaoOperator::pao(row, col);
             }
         }
+    }
+
+    void exclude_cob_internal(int row, int col)
+    {
+        validate_cob_row(row, "ExcludeCob");
+        validate_cob_col(col, "ExcludeCob");
+
+        // 保留原定炮序
+        AvZ::InsertOperation([=]() {
+            auto prev_index_vec = pao_index_vec;
+            auto excluded_index = AvZ::GetPlantIndex(row, col, COB_CANNON);
+            std::vector<AvZ::Grid> valid_cobs;
+
+            auto plant_array = AvZ::GetMainObject()->plantArray();
+            for (const auto& index : pao_index_vec) {
+                if (index != excluded_index)
+                    valid_cobs.push_back({plant_array[index].row() + 1,
+                        plant_array[index].col() + 1});
+            }
+
+            AvZ::InsertGuard _(false);
+            resetPaoList(valid_cobs);
+        },
+            "CobOperator::ExcludeCob");
     }
 };
 
@@ -345,9 +353,9 @@ void D(Time time, int row, float col)
 
 // 不使用特定炮.
 // *** 使用用例:
-// ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效
+// ExcludeCob(3, 5)---------不使用3-5炮, 游戏开始时起效[外]
 // ExcludeCob(400, ...)-----400cs起效
-void ExcludeCob(int time, int row, int col)
+void ExcludeCob(Time time, int row, int col)
 {
     cob_operator.ExcludeCob(time, row, col);
 }
@@ -360,7 +368,7 @@ void ExcludeCob(int row, int col)
 // 重置为使用所有炮.
 // *** 使用用例:
 // ResetCob(400)-----重置为使用所有炮, 400cs起效
-void ResetCob(int time)
+void ResetCob(Time time)
 {
     cob_operator.ResetCob(time);
 }

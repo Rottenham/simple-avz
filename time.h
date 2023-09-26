@@ -1,5 +1,6 @@
 #pragma once
 
+#include "global.h"
 #include "libavz.h"
 
 struct Time {
@@ -72,3 +73,61 @@ ShovelTime until(int t)
 {
     return ShovelTime(ShovelTime::Type::UNTIL, t);
 }
+
+namespace _SimpleAvZInternal {
+
+// 获得延迟时间, 并且更新[last_effect_time]
+int get_delayed_time_and_update(int delay_time, const std::string& func_name)
+{
+    if (!global.is_last_effect_time_initialized()) {
+        error(func_name + "-->after", "没有延迟的基准, 请先使用固定时间的用炮/用卡函数");
+    }
+
+    global.last_effect_time += delay_time;
+    return global.last_effect_time;
+}
+
+// 获得生效时间, 并且更新[last_effect_time]
+// 不适用于卡片, 卡片应用[get_card_effect_time]
+int get_effect_time(Time time, const std::string& func_name)
+{
+    if (!global.is_last_effect_wave_initialized()) {
+        error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+    }
+
+    switch (time.type) {
+    case Time::Type::ABS:
+        global.last_effect_time = time.time;
+        return time.time;
+    case Time::Type::REL:
+        return get_delayed_time_and_update(time.time, func_name);
+    default:
+        assert(false);
+    }
+}
+
+// 在循环节内设定时间
+void set_time_inside(int time, const std::string& func_name)
+{
+    if (!global.is_last_effect_wave_initialized()) {
+        error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+    }
+    AvZ::SetTime(time, global.last_effect_wave);
+}
+
+void get_effect_time_and_set_time(Time time, const std::string& func_name)
+{
+    set_time_inside(get_effect_time(time, func_name), func_name);
+}
+
+// 在循环节外设定时间
+void set_time_outside(int time, int wave, const std::string& func_name)
+{
+    if (global.is_last_effect_wave_initialized()) {
+        error(func_name, "若省略生效时间, 需在waves()循环节外使用");
+    }
+
+    AvZ::SetTime(time, wave);
+}
+
+} // namespace _SimpleAvZInternal

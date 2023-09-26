@@ -5,12 +5,9 @@
 #include "libavz.h"
 #include "time.h"
 
-// 设置存冰位置.
-// 若不指定生效时间, 默认在 wave 1, -599cs 生效.
-// *** 使用示例:
-// SetIce({{1, 1}, {1, 2}})-----在1-1, 1-2存冰(优先使用1-2)
-// SetIce(400, {...})-----------400cs生效
-void SetIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
+namespace _SimpleAvZInternal {
+
+void set_ice_internal(const std::vector<AvZ::Grid>& ice_positions)
 {
     int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
 
@@ -25,9 +22,6 @@ void SetIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
         }
     }
 
-    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "SetIce");
-
-    AvZ::SetTime(effect_time);
     if (!_SimpleAvZInternal::global.is_ice_positions_initialized) {
         _SimpleAvZInternal::global.is_ice_positions_initialized = true;
         AvZ::ice_filler.start(ice_positions);
@@ -36,10 +30,23 @@ void SetIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
     }
 }
 
+} // namespace _SimpleAvZInternal
+
+// 设置存冰位置.
+// 若不指定生效时间, 默认在 wave 1, -599cs 生效.
+// *** 使用示例:
+// SetIce({{1, 1}, {1, 2}})-----在1-1, 1-2存冰(优先使用1-2)[外]
+// SetIce(400, {...})-----------400cs生效
+void SetIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
+{
+    _SimpleAvZInternal::get_effect_time_and_set_time(time, "SetIce");
+    _SimpleAvZInternal::set_ice_internal(ice_positions);
+}
+
 void SetIce(const std::vector<AvZ::Grid>& ice_positions)
 {
-    AvZ::SetTime(-599, 1);
-    SetIce(-599, ice_positions);
+    _SimpleAvZInternal::set_time_outside(-599, 1, "SetIce");
+    _SimpleAvZInternal::set_ice_internal(ice_positions);
 }
 
 // 白昼点冰. 自带生效时机修正.
@@ -48,20 +55,14 @@ void SetIce(const std::vector<AvZ::Grid>& ice_positions)
 // I()---------------点冰, 601cs生效(完美预判冰)
 // I(after(210))-----延迟210cs生效(ice3), 推荐在激活炮后使用
 // I(359)------------359cs生效
-void I(Time time)
+void I(Time time = Time(601))
 {
-    if (_SimpleAvZInternal::is_night()) {
+    if (_SimpleAvZInternal::is_night_time()) {
         _SimpleAvZInternal::error("I", "不可在夜间使用白昼版本的I()\n请提供用冰位置");
     }
 
-    time.fix_card_time_to_cob = true;
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM, COFFEE_BEAN}, "I");
-    AvZ::SetTime(effect_time - 299);
+    _SimpleAvZInternal::set_time_inside(effect_time - 299, "I");
     AvZ::ice_filler.coffee();
     AvZ::SetPlantActiveTime(ICE_SHROOM, 298);
-}
-
-void I()
-{
-    I(Time(Time::Type::ABS, 601, true));
 }

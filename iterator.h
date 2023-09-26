@@ -31,7 +31,7 @@ public:
             }
         }
         if (!duplicate_waves.empty()) {
-            error("waves", "waves调用的波次不可重复.\n重复的波次: " + concat(ints_to_strings(duplicate_waves), ","));
+            error("waves", "waves调用的波次不可重复.\n重复的波次: " + concat(duplicate_waves, ","));
         }
     }
 };
@@ -78,8 +78,9 @@ public:
 
 void init(Wave& wave)
 {
-    _SimpleAvZInternal::global.reset_last_set_time();
-    AvZ::SetTime(3000, wave.value); // 如果之后没有SetTime, 就会有报错提醒, 而非静默出错
+    _SimpleAvZInternal::global.reset_last_effect_time();
+    _SimpleAvZInternal::global.last_effect_wave = wave.value;
+    AvZ::SetTime(3000, wave.value); // 如果使用AvZ原生IQ函数且不SetTime, 就会有报错提醒, 而非静默出错
 }
 
 class WaveIterator : public std::iterator<std::input_iterator_tag, Wave> {
@@ -121,6 +122,10 @@ public:
     WaveIterator end()
     {
         return WaveIterator(waves.end());
+    }
+    ~Waves()
+    {
+        global.reset_last_effect_wave();
     }
 };
 

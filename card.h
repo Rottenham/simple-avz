@@ -20,9 +20,9 @@ bool is_instant(std::vector<PlantType> plant_types)
         plant_type = non_imitater(plant_type);
 
     for (const auto& plant_type : plant_types) {
-        if (is_night() && contains({ICE_SHROOM, DOOM_SHROOM}, plant_type))
+        if (is_night_time() && contains({ICE_SHROOM, DOOM_SHROOM}, plant_type))
             return true;
-        if (!is_night() && contains({ICE_SHROOM, DOOM_SHROOM}, plant_type) && contains(plant_types, COFFEE_BEAN))
+        if (!is_night_time() && contains({ICE_SHROOM, DOOM_SHROOM}, plant_type) && contains(plant_types, COFFEE_BEAN))
             return true;
         if (contains({CHERRY_BOMB, JALAPENO, SQUASH}, plant_type))
             return true;
@@ -32,7 +32,7 @@ bool is_instant(std::vector<PlantType> plant_types)
 
 int get_card_effect_time(Time time, const std::vector<PlantType>& plant_types, const std::string& func_name)
 {
-    auto effect_time = global.get_effect_time(time, func_name);
+    auto effect_time = get_effect_time(time, func_name);
     if (time.fix_card_time_to_cob && is_instant(plant_types))
         return effect_time + 1;
     else
@@ -56,7 +56,7 @@ int get_prep_time(const PlantType& plant_type, const std::vector<PlantType>& all
     } else if (non_im_plant_type == SQUASH) {
         prep_time = 182;
     } else if (contains({ICE_SHROOM, DOOM_SHROOM}, non_im_plant_type)) {
-        if (is_night())
+        if (is_night_time())
             prep_time = 100;
         else if (contains(all_plants, COFFEE_BEAN))
             prep_time = 299;
@@ -115,7 +115,7 @@ std::vector<bool> get_set_active_time_flags(const std::vector<PlantType>& plant_
         if (contains({CHERRY_BOMB, JALAPENO}, non_im_plant_type)) {
             flag = is_imitater;
         } else if (contains({ICE_SHROOM, DOOM_SHROOM}, non_im_plant_type)) {
-            if (is_night())
+            if (is_night_time())
                 flag = is_imitater;
             else if (contains(plant_types, COFFEE_BEAN) || contains(plant_types, M_COFFEE_BEAN))
                 flag = true;
@@ -132,9 +132,9 @@ bool get_set_active_time_flag(const PlantType& plant_type)
     return get_set_active_time_flags({{plant_type}}).front();
 }
 
-void remove_all(int time, int row, int col)
+void remove_all(int time, int row, int col, const std::string& func_name)
 {
-    AvZ::SetTime(time);
+    set_time_inside(time, func_name);
     AvZ::InsertOperation([=]() {
         auto plant_num = 0;
         for (auto& p : AvZ::alive_plant_filter) {
@@ -148,7 +148,58 @@ void remove_all(int time, int row, int col)
         for (int i = 0; i < plant_num; i++)
             AvZ::ShovelNotInQueue(row, col);
     },
-        "remove_all");
+        func_name + "-->remove_all");
+}
+
+std::set<PlantType> get_invalid_plants(int row)
+{
+    switch (AvZ::GetMainObject()->scene()) {
+    case 0:
+        return {GRAVE_BUSTER, LILY_PAD, TANGLE_KELP, SEA_SHROOM, CATTAIL};
+    case 1:
+        return {LILY_PAD, TANGLE_KELP, SEA_SHROOM, COFFEE_BEAN, CATTAIL};
+    case 2:
+        if (row == 3 || row == 4) {
+            return {POTATO_MINE, GRAVE_BUSTER, SPIKEWEED, FLOWER_POT, SPIKEROCK};
+        } else {
+            return {GRAVE_BUSTER, LILY_PAD, TANGLE_KELP, SEA_SHROOM, CATTAIL};
+        }
+    case 3:
+        if (row == 3 || row == 4) {
+            return {POTATO_MINE, GRAVE_BUSTER, SPIKEWEED, FLOWER_POT, COFFEE_BEAN, SPIKEROCK};
+        } else {
+            return {GRAVE_BUSTER, LILY_PAD, TANGLE_KELP, SEA_SHROOM, COFFEE_BEAN, CATTAIL};
+        }
+    case 4:
+        return {GRAVE_BUSTER, LILY_PAD, TANGLE_KELP, SPIKEWEED, SEA_SHROOM, CATTAIL, SPIKEROCK};
+    default:
+        return {GRAVE_BUSTER, LILY_PAD, TANGLE_KELP, SPIKEWEED, SEA_SHROOM, COFFEE_BEAN, CATTAIL, SPIKEROCK};
+    }
+}
+
+void validate_card_position(const PlantType& plant_type, int row, int col, const std::string& func_name)
+{
+    int max_row = is_backyard() ? 6 : 5;
+    if (row < 1 || row > max_row) {
+        error(func_name, "用卡行应在1~#内\n用卡行: #", max_row, row);
+    }
+    if (col < 1 || col > 9) {
+        error(func_name, "用卡列应在1~9内\n用卡列: #", col);
+    }
+    if (get_invalid_plants(row).count(non_imitater(plant_type))) {
+        error(func_name, "当前场景不可在此行使用此卡片\n卡片: #\n用卡行: #", non_imitater(plant_type), row);
+    }
+}
+
+void validate_shovel_position(int row, int col, const std::string& func_name)
+{
+    int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
+    if (row < 1 || row > max_row) {
+        _SimpleAvZInternal::error("RM", "铲除行应在1~#内\n铲除行: #", max_row, row);
+    }
+    if (col < 1 || col > 9) {
+        _SimpleAvZInternal::error("RM", "铲除列应在1~9内\n铲除列: #", col);
+    }
 }
 
 } // namespace _SimpleAvZInternal
@@ -167,9 +218,7 @@ void RM(Time time, PlantType target)
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
-
-    AvZ::SetTime(effect_time);
+    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
     AvZ::InsertOperation([=]() {
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.type() == target) {
@@ -182,22 +231,14 @@ void RM(Time time, PlantType target)
 
 void RM(Time time, PlantType target, int row, int col)
 {
-    int max_row = _SimpleAvZInternal::is_backyard() ? 6 : 5;
-    if (row < 1 || row > max_row) {
-        _SimpleAvZInternal::error("RM", "铲除行应在1~#内\n铲除行: #", max_row, row);
-    }
-    if (col < 1 || col > 9) {
-        _SimpleAvZInternal::error("RM", "铲除列应在1~9内\n铲除列: #", col);
-    }
 
     target = _SimpleAvZInternal::non_imitater(target);
     if (target == GRAVE_BUSTER) {
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
+    _SimpleAvZInternal::validate_shovel_position(row, col, "RM");
 
-    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
-
-    AvZ::SetTime(effect_time);
+    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
     AvZ::InsertOperation([=]() {
         bool found = false;
 
@@ -219,9 +260,11 @@ void RM(Time time, PlantType target, int row, int col)
 
 void RM(Time time, const std::vector<int>& rows, int col)
 {
-    auto effect_time = _SimpleAvZInternal::global.get_effect_time(time, "RM");
+    for (const auto& row : rows) {
+        _SimpleAvZInternal::validate_shovel_position(row, col, "RM");
+    }
 
-    AvZ::SetTime(effect_time);
+    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
     for (const auto& row : rows) {
         AvZ::Shovel(row, col);
     }
@@ -240,12 +283,13 @@ void RM(Time time, int row, int col)
 // I(359, 1, 2)-------------359cs生效
 void I(Time time, int row, int col)
 {
-    if (!_SimpleAvZInternal::is_night()) {
+    if (!_SimpleAvZInternal::is_night_time()) {
         _SimpleAvZInternal::error("I", "不可在白昼使用夜间版本的I()\n无需提供用冰位置");
     }
+    _SimpleAvZInternal::validate_card_position(ICE_SHROOM, row, col, "I");
 
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM}, "I");
-    AvZ::SetTime(effect_time - 100);
+    _SimpleAvZInternal::set_time_inside(effect_time - 100, "I");
     AvZ::Card(ICE_SHROOM, row, col);
 }
 
@@ -262,12 +306,13 @@ void I(int row, int col)
 // M_I(359, 1, 2)-------------359cs生效
 void M_I(Time time, int row, int col)
 {
-    if (!_SimpleAvZInternal::is_night()) {
+    if (!_SimpleAvZInternal::is_night_time()) {
         _SimpleAvZInternal::error("M_I", "M_I为夜间复制冰函数, 不可在白昼使用");
     }
+    _SimpleAvZInternal::validate_card_position(M_ICE_SHROOM, row, col, "M_I");
 
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {M_ICE_SHROOM}, "M_I");
-    AvZ::SetTime(effect_time - 420);
+    _SimpleAvZInternal::set_time_inside(effect_time - 420, "M_I");
     AvZ::Card(M_ICE_SHROOM, row, col);
     AvZ::SetPlantActiveTime(ICE_SHROOM, 419);
 }
@@ -303,6 +348,12 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
     if (plant_types.size() != rows.size()) {
         _SimpleAvZInternal::error("C", "卡片数与行数不一致\n卡片数: #\n行数: #", plant_types.size(), rows.size());
     }
+    for (int i = 0; i < plant_types.size(); i++) {
+        auto plant_type = plant_types.at(i);
+        auto row = rows.at(i);
+        _SimpleAvZInternal::validate_card_position(plant_type, row, col, "C");
+    }
+
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "C");
 
     for (int i = 0; i < plant_types.size(); i++) {
@@ -310,18 +361,17 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
         auto row = rows.at(i);
 
         auto prep_time = _SimpleAvZInternal::get_prep_time(plant_type);
-        auto set_active_time = _SimpleAvZInternal::get_set_active_time_flag(plant_type);
 
-        AvZ::SetTime(effect_time - prep_time);
+        _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C");
         AvZ::Card(plant_type, row, col);
-        if (set_active_time)
+        if (_SimpleAvZInternal::get_set_active_time_flag(plant_type))
             AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col);
+                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C");
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                _SimpleAvZInternal::remove_all(shovel_time.time, row, col);
+                _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C");
         }
     }
 }
@@ -336,6 +386,10 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
     if (plant_types.empty()) {
         _SimpleAvZInternal::error("C", "要用的卡片不可为空");
     }
+    for (const auto& plant_type : plant_types) {
+        _SimpleAvZInternal::validate_card_position(plant_type, row, col, "C");
+    }
+
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "C");
     auto prep_times = _SimpleAvZInternal::get_prep_times(plant_types);
     auto set_active_time_flags = _SimpleAvZInternal::get_set_active_time_flags(plant_types);
@@ -343,18 +397,18 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
     for (int i = 0; i < plant_types.size(); i++) {
         auto plant_type = plant_types.at(i);
         auto prep_time = prep_times.at(i);
-        auto set_active_time = set_active_time_flags.at(i);
+        auto set_active_time_flag = set_active_time_flags.at(i);
 
-        AvZ::SetTime(effect_time - prep_time);
+        _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C");
         AvZ::Card(plant_type, row, col);
-        if (set_active_time)
+        if (set_active_time_flag)
             AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
-                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col);
+                _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C");
             else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                _SimpleAvZInternal::remove_all(shovel_time.time, row, col);
+                _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C");
         }
     }
 }
@@ -372,4 +426,72 @@ void C(Time time, ShovelTime shovel_time, PlantType plant_type, int row, int col
 void C(Time time, PlantType plant_type, int row, int col)
 {
     C(time, ShovelTime(), {{plant_type}}, {{row}}, col);
+}
+
+// 智能用卡. 根据本行僵尸情况决定是否用卡.
+// 提供"僵尸是否存在", 以及"僵尸x是否小于某值"两种判断方式.
+// *** 使用示例:
+// C_IF(exist(ZOMBONI), 400, SPIKEWEED, 1, 9)-------若本行存在冰车, 于400cs在1-9放置地刺
+// C_IF(pos({GARG, GIGA}, 680), 400, POT, 1, 8)-----若本行存在int(x)≤680的白眼或红眼, 于400cs在1-8放置花盆
+void C_IF(const std::function<bool(int)>& condition, Time time, ShovelTime shovel_time, const PlantType& plant_type, int row, int col)
+{
+    _SimpleAvZInternal::validate_card_position(plant_type, row, col, "C");
+
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {{plant_type}}, "C_IF");
+    auto prep_time = _SimpleAvZInternal::get_prep_time(plant_type);
+    auto set_active_time_flag = _SimpleAvZInternal::get_set_active_time_flag(plant_type);
+
+    _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C_IF");
+    AvZ::InsertOperation([=]() {
+        if (condition(row)) {
+            AvZ::SetNowTime();
+            AvZ::Card(plant_type, row, col);
+            if (set_active_time_flag)
+                AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
+            if (shovel_time.type != ShovelTime::Type::NONE) {
+                if (shovel_time.type == ShovelTime::Type::KEEP)
+                    _SimpleAvZInternal::remove_all(effect_time + shovel_time.time, row, col, "C_IF");
+                else if (shovel_time.type == ShovelTime::Type::UNTIL)
+                    _SimpleAvZInternal::remove_all(shovel_time.time, row, col, "C_IF");
+            }
+        }
+    },
+        "C_IF");
+}
+
+void C_IF(const std::function<bool(int)>& condition, Time time, const PlantType& plant_type, int row, int col)
+{
+    C_IF(condition, time, ShovelTime(), plant_type, row, col);
+}
+
+std::function<bool(int)> exist(const std::vector<ZombieType>& zombie_types)
+{
+    return [=](int row) {
+        for (auto& z : AvZ::alive_zombie_filter) {
+            if (z.row() + 1 == row && _SimpleAvZInternal::contains(zombie_types, (ZombieType)z.type()))
+                return true;
+        }
+        return false;
+    };
+}
+
+std::function<bool(int)> exist(const ZombieType& zombie_type)
+{
+    return exist({{zombie_type}});
+}
+
+std::function<bool(int)> pos(const std::vector<ZombieType>& zombie_types, int x)
+{
+    return [=](int row) {
+        for (auto& z : AvZ::alive_zombie_filter) {
+            if (z.row() + 1 == row && _SimpleAvZInternal::contains(zombie_types, (ZombieType)z.type()) && static_cast<int>(z.abscissa()) <= x)
+                return true;
+        }
+        return false;
+    };
+}
+
+std::function<bool(int)> pos(const ZombieType& zombie_type, int x)
+{
+    return pos({{zombie_type}}, x);
 }

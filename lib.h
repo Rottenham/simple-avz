@@ -21,6 +21,7 @@
 #include "ice_filler.h"
 #include "iterator.h"
 #include "macro.h"
+#include "zombie.h"
 
 #ifndef __AVZ_VERSION__
 #error "Unknown AvZ version. Cannot perform version check."

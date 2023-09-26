@@ -2,20 +2,42 @@
 
 #pragma once
 
+#include <iterator> // std::advance
 #include <numeric>
 #include <string>
+#include <type_traits> // std::is_same
 #include <vector>
 
 namespace _SimpleAvZInternal {
 
-std::string concat(const std::vector<std::string>& strings, std::string sep)
+template <typename T>
+std::string to_string(const T& val, std::true_type)
+{
+    return val;
+}
+
+template <typename T>
+std::string to_string(const T& val, std::false_type)
+{
+    return std::to_string(val);
+}
+
+template <template <typename, typename...> class Container, typename T, typename... Args>
+std::string concat(const Container<T, Args...>& container, const std::string& sep)
 {
     std::string output = "";
-    for (const auto& str : strings) {
-        if (!output.empty())
+    bool first = true;
+
+    for (const auto& val : container) {
+        if (first) {
+            first = false;
+        } else {
             output += sep;
-        output += str;
+        }
+
+        output += to_string(val, std::is_same<T, std::string>());
     }
+
     return output;
 }
 
@@ -25,13 +47,12 @@ bool contains(const std::vector<T>& vec, const T& elem)
     return std::find(vec.begin(), vec.end(), elem) != vec.end();
 }
 
-std::vector<std::string> ints_to_strings(const std::vector<int>& ints)
+template <typename T>
+typename std::vector<T>::const_iterator select_random_elem(const std::vector<T>& vec)
 {
-    std::vector<std::string> strings;
-    for (const auto& i : ints) {
-        strings.push_back(std::to_string(i));
-    }
-    return strings;
+    auto it = vec.begin();
+    std::advance(it, std::rand() % vec.size());
+    return it;
 }
 
 } // namespace _SimpleAvZInternal

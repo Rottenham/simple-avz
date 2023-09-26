@@ -1,62 +1,59 @@
 #pragma once
 
 #include "error.h"
-#include "time.h"
 
 namespace _SimpleAvZInternal {
 
 class Global : AvZ::GlobalVar {
 private:
-    const int LAST_SET_TIME_INIT_VALUE = -999999;
-    int last_set_time = LAST_SET_TIME_INIT_VALUE;
+    const int TIME_WAVE_INIT_VAL = -0xFFFF;
 
 public:
+    int last_effect_time = TIME_WAVE_INIT_VAL;
+    int last_effect_wave = TIME_WAVE_INIT_VAL;
     bool is_ice_positions_initialized = false;
 
     void virtual beforeScript() override
     {
-        last_set_time = LAST_SET_TIME_INIT_VALUE;
+        last_effect_time = TIME_WAVE_INIT_VAL;
+        last_effect_wave = TIME_WAVE_INIT_VAL;
         is_ice_positions_initialized = false;
     }
 
-    // 获得延迟时间, 并且更新[last_set_time]
-    int get_delayed_time_and_update(int delay_time, const std::string& func_name)
+    void reset_last_effect_time()
     {
-        if (last_set_time == LAST_SET_TIME_INIT_VALUE) {
-            error(func_name + "-->after", "没有延迟的基准, 请先使用固定时间的用炮/用卡函数");
-        }
-        last_set_time += delay_time;
-        return last_set_time;
+        last_effect_time = TIME_WAVE_INIT_VAL;
     }
 
-    // 获得生效时间, 并且更新[last_set_time]
-    // 不适用于卡片, 卡片应用[get_card_effect_time]
-    int get_effect_time(Time time, const std::string& func_name)
+    void reset_last_effect_wave()
     {
-        switch (time.type) {
-        case Time::Type::ABS:
-            last_set_time = time.time;
-            return time.time;
-        case Time::Type::REL:
-            return get_delayed_time_and_update(time.time, func_name);
-        default:
-            assert(false);
-        }
+        last_effect_wave = TIME_WAVE_INIT_VAL;
     }
 
-    void reset_last_set_time()
+    bool is_last_effect_time_initialized()
     {
-        last_set_time = LAST_SET_TIME_INIT_VALUE;
+        return last_effect_time != TIME_WAVE_INIT_VAL;
+    }
+
+    bool is_last_effect_wave_initialized()
+    {
+        return last_effect_wave != TIME_WAVE_INIT_VAL;
     }
 };
 
 Global global;
 
 // scene 相关
-bool is_night()
+bool is_night_time()
 {
     auto scene = AvZ::GetMainObject()->scene();
     return (scene > 4) || (scene % 2 == 1);
+}
+
+bool is_frontyard()
+{
+    auto scene = AvZ::GetMainObject()->scene();
+    return (scene == 0) || (scene == 1);
 }
 
 bool is_backyard()
