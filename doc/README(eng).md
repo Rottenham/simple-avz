@@ -1,5 +1,7 @@
 # Simple AvZ 💫
 
+[English](./README(eng).md) | [简体中文](../README.md)
+
 *---------- The brand-new AvZ*
 
 Simple AvZ is a syntax simplification framework based on AvZ 1.
@@ -177,8 +179,8 @@ For demonstration purposes, using `EnsureExist` is more recommended as it showca
 
 ## Script Examples
 
-Here are some [Simple AvZ script examples](https://github.com/qrmd0/AvZLib/tree/main/crescendo/SimpleAvZ/examples).
+Here are some [Simple AvZ script examples](../examples/).
 
 ## Learn More
 
-[Learn more about Simple AvZ's rationale behind the scenes](https://github.com/qrmd0/AvZLib/blob/main/crescendo/SimpleAvZ/docs/About.md) (Chinese).
+[Learn more about Simple AvZ's rationale behind the scenes](./About.md) (Chinese).
