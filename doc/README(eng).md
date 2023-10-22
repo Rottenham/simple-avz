@@ -2,13 +2,13 @@
 
 [English](./README(eng).md) | [简体中文](../README.md)
 
-*---------- The brand-new AvZ*
+*---------- the brand-new AvZ experience*
 
 Simple AvZ is a syntax simplification framework based on AvZ 1.
 
 ## Quick Start
 
-Use AvZ VSCode extension's `Get AvZ Extension` command to download Simple AvZ, and then add `#include "SimpleAvZ/lib.h"` to your script. That's it!
+Use AvZ VSCode extension's `Get AvZ Extension` command to install Simple AvZ, and then add `#include "SimpleAvZ/lib.h"` to your script. That's it!
 
 If `Get AvZ Extension` is broken, you may also manually download it from the `/release` directory in this repo.
 
@@ -99,27 +99,27 @@ In roof scenes, you may declare multiple `CobOperator`s before `void Script()`, 
 
 ```cpp
 I(1, 2);             // Place ice at 1-2, taking effect at 601cs (perfect ice)
-I(after(210), 1, 2); // Use ice, takeing effect after 210cs (ice3), recommended to be used after activation cobs
+I(after(210), 1, 2); // Use ice, taking effect after 210cs (ice3), recommended to be used after activation cobs
 I(359, 1, 2);        // Use ice, taking effect at 359cs
 M_I(...);            // Use imitator ice (same usage)
 ```
 
-Use ice in nighttime. Effect time is auto-corrected. If effect time is not specified, it defaults to 601cs of the current wave (perfect ice for next wave).
+Use ice at nighttime. Effect time is auto-corrected. If effect time is not specified, it defaults to 601cs of the current wave (perfect ice for next wave).
 
 ```cpp
 SetIce({{1, 1}, {1, 2}});  // Store and use ices at 1-1, 1-2 (use 1-2 first), effective since game start [EXT]
 SetIce(400, {...});        // Effective since 400cs
 ```
 
-Set where to store ices in daytime. If effect time is not specified, it defaults to game start (wave 1, -599cs).
+Set where to store ices at daytime. If effect time is not specified, it defaults to game start (wave 1, -599cs).
 
 ```cpp
 I();                       // Use ice, taking effect at 601cs (perfect ice)
-I(after(210));             // Use ice, takeing effect after 210cs (ice3), recommended to be used after activation cobs
+I(after(210));             // Use ice, taking effect after 210cs (ice3), recommended to be used after activation cobs
 I(359);                    // Use ice, taking effect at 359cs
 ```
 
-Use ice in daytime. Effect time is auto-corrected. If effect time is not specified, it defaults to 601cs of the current wave (perfect ice for next wave).
+Use ice at daytime. Effect time is auto-corrected. If effect time is not specified, it defaults to 601cs of the current wave (perfect ice for next wave).
 
 ```cpp
 C(359, CHERRY, 2, 9);                // Place cherry at 2-9, taking effect at 359cs
