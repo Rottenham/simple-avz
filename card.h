@@ -10,7 +10,7 @@ namespace _SimpleAvZInternal {
 
 PlantType non_imitater(const PlantType& plant_type)
 {
-    return (plant_type > IMITATOR) ? static_cast<PlantType>((plant_type - IMITATOR - 1)) : plant_type;
+    return (plant_type > IMITATOR) ? static_cast<PlantType>(plant_type - IMITATOR - 1) : plant_type;
 }
 
 // 是否为一次性植物(白天咖啡豆+冰/核的组合也视为一次性)
