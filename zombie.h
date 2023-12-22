@@ -36,42 +36,41 @@ public:
             error("EnsureExist", "Unsupported zombie type: #", zombie_type);
         }
 
-        int max_row = is_backyard() ? 6 : 5;
         for (const auto& row : rows) {
-            if (row < 1 || row > max_row) {
-                error("EnsureExist", "Zombie row should be within 1~#: #", max_row, row);
+            if (row < 1 || row > get_max_spawn_row()) {
+                error("EnsureExist", "Zombie row should be within 1~#: #", get_max_spawn_row(), row);
             }
         }
 
         auto detail_str = "Zombie type: " + std::to_string(static_cast<int>(zombie_type)) + "\nZombie rows: " + concat(rows, ",");
 
-        if (is_backyard()) {
+        if (has_water_rows()) {
             if (AQUATIC_ZOMBIES.count(zombie_type)) {
-                if (rows.count(3) + rows.count(4) != rows.size()) {
+                if (AvZ::GetMainObject()->scene() == 8) {
+                    error("EnsureExist", "Cannot spawn snorkel or dolphin in aquarium scene\n" + detail_str);
+                } else if (rows.count(3) + rows.count(4) != rows.size()) {
                     error("EnsureExist", "Cannot spawn snorkel or dolphin in non-water rows\n" + detail_str);
                 }
-            } else {
+            } else if (zombie_type != BALLOON_ZOMBIE) {
                 if ((rows.count(3) || rows.count(4))) {
-                    error("EnsureExist", "Setting zombies except snorkel or dolphin in water rows is not supported yet\n" + detail_str);
+                    error("EnsureExist", "Setting zombies except snorkel, dolphin, or balloon in water rows is not supported yet\n" + detail_str);
                 }
             }
         } else {
             if (AQUATIC_ZOMBIES.count(zombie_type)) {
                 error("EnsureExist", "Cannot spawn snorkel or dolphin in non-backyard scenes\n" + detail_str);
             }
-            if (is_frontyard()) {
-                if (zombie_type == DANCING_ZOMBIE && (rows.count(1) || rows.count(5))) {
-                    error("EnsureExist", "Cannot spawn dancer in row 1 or 5\n" + detail_str);
-                }
-                if (AvZ::GetMainObject()->scene() == 1 && zombie_type == ZOMBONI) {
-                    error("EnsureExist", "Cannot spawn zomboni at night scene\n" + detail_str);
-                }
-            } else if (is_roof()) {
-                if (AvZ::RangeIn(zombie_type, {DANCING_ZOMBIE, DIGGER_ZOMBIE})) {
-                    error("EnsureExist", "Cannot spawn dancer or digger in roof scenes\n" + detail_str);
-                }
-            } else {
-                assert(false);
+            if (no_dancing_in_side_rows()
+                && zombie_type == DANCING_ZOMBIE
+                && (rows.count(1) || rows.count(get_max_spawn_row()))) {
+                error("EnsureExist", "Cannot spawn dancer in row 1 or 5\n" + detail_str);
+            }
+            if (no_zomboni() && zombie_type == ZOMBONI) {
+                error("EnsureExist", "Cannot spawn zomboni in night scene\n" + detail_str);
+            }
+            if (is_roof()
+                && (zombie_type == DANCING_ZOMBIE || zombie_type == DIGGER_ZOMBIE)) {
+                error("EnsureExist", "Cannot spawn dancer or digger in roof scenes\n" + detail_str);
             }
         }
     }
@@ -82,17 +81,22 @@ public:
             return rows;
         } else {
             std::set<int> new_rows;
-            if (is_backyard()) {
+            if (has_water_rows()) {
                 new_rows = {1, 2, 3, 4, 5, 6};
                 if (AQUATIC_ZOMBIES.count(zombie_type)) {
                     new_rows = {3, 4};
+                } else if (zombie_type == BALLOON_ZOMBIE) {
+                    new_rows = {1, 2, 3, 4, 5, 6};
                 } else {
                     new_rows = {1, 2, 5, 6};
                 }
             } else {
-                new_rows = {1, 2, 3, 4, 5};
-                if (is_frontyard() && zombie_type == DANCING_ZOMBIE) {
-                    new_rows = {2, 3, 4};
+                for (int i = 1; i <= get_max_spawn_row(); i++) {
+                    new_rows.insert(i);
+                }
+                if (no_dancing_in_side_rows() && zombie_type == DANCING_ZOMBIE) {
+                    new_rows.erase(1);
+                    new_rows.erase(get_max_spawn_row());
                 }
             }
             return new_rows;
@@ -103,7 +107,7 @@ public:
 void move_zombie_row(Zombie* zombie, int target_row)
 {
     const int BASE_Y = is_roof() ? 40 : 50;
-    const int GRID_HEIGHT = is_frontyard() ? 100 : 85;
+    const int GRID_HEIGHT = is_visually_six_rows() ? 85 : 100;
 
     int diff = (target_row - 1) - zombie->row();
     zombie->row() = target_row - 1;
@@ -144,8 +148,10 @@ void EnsureExist(const std::vector<_SimpleAvZInternal::EnsureExistInfo>& ensure_
             if (zombie->existTime() > 5) // 只考虑本波僵尸
                 continue;
 
-            if (_SimpleAvZInternal::is_backyard() && AvZ::RangeIn(zombie->row() + 1, {3, 4})
-                && !_SimpleAvZInternal::AQUATIC_ZOMBIES.count(static_cast<ZombieType>(zombie->type()))) // 无视后院水路潜水,海豚以外的僵尸
+            if (_SimpleAvZInternal::has_water_rows()
+                && (zombie->row() + 1 == 3 || zombie->row() + 1 == 4)
+                && !_SimpleAvZInternal::AQUATIC_ZOMBIES.count(static_cast<ZombieType>(zombie->type()))
+                && zombie->type() != BALLOON_ZOMBIE) // 无视水路潜水,海豚,气球以外的僵尸
                 continue;
 
             zombie_index[zombie->type()][zombie->row() + 1].push_back(i);
