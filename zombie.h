@@ -75,8 +75,7 @@ public:
         }
     }
 
-    std::set<int>
-    get_rows() const
+    std::set<int> get_rows() const
     {
         if (!rows.empty()) {
             return rows;
