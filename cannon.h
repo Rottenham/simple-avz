@@ -334,6 +334,11 @@ void P(Time time, int row, float col)
     cob_operator.P(time, row, col);
 }
 
+void P(Time time, int cob_row, int cob_col, int row, float col)
+{
+    cob_operator.P(time, cob_row, cob_col, row, col);
+}
+
 // 发射分离炮.
 // *** 使用示例:
 // B(304, 5, 8.225)-----炸(5, 8.225), 304cs生效
