@@ -129,6 +129,7 @@ bool get_set_active_time_flag(const PlantType& plant_type)
 // 除此之外, 若仅有容器, 则也铲之, 否则不铲
 void shovel_with_container(int time, PlantType target, int row, int col, const std::string& func_name)
 {
+    bool is_imitater = target > IMITATOR;
     target = non_imitater(target);
     set_time_inside(time, func_name);
     AvZ::InsertOperation([=]() {
@@ -137,7 +138,7 @@ void shovel_with_container(int time, PlantType target, int row, int col, const s
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.row() + 1 == row) {
                 if (p.col() + 1 == col || (p.col() == col && p.type() == COB_CANNON)) {
-                    if (p.type() == target)
+                    if ((p.type() == target) || (p.type() == IMITATOR && is_imitater))
                         AvZ::ShovelNotInQueue(row, static_cast<float>(col), target == PUMPKIN);
                     else if (p.type() == LILY_PAD || p.type() == FLOWER_POT)
                         container_num++;
