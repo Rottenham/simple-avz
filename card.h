@@ -127,11 +127,16 @@ bool get_set_active_time_flag(const PlantType& plant_type)
 
 // 如果存在目标植物, 则铲之
 // 除此之外, 若仅有容器, 则也铲之, 否则不铲
-void shovel_with_container(int time, PlantType target, int row, int col, const std::string& func_name)
+void shovel_with_container(int time, PlantType target, int row, int col, const std::string& func_name,
+    bool usable_outside_loop = false)
 {
     bool is_imitater = target > IMITATOR;
     target = non_imitater(target);
-    set_time_inside(time, func_name);
+    if (usable_outside_loop) {
+        AvZ::SetTime(time, AvZ::GetRunningWave());
+    } else {
+        set_time_inside(time, func_name);
+    }
     AvZ::InsertOperation([=]() {
         bool shovel_container = true;
         int container_num = 0;
@@ -463,9 +468,9 @@ void C_IF(const std::function<bool(int)>& condition, Time time, ShovelTime shove
                 AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
             if (shovel_time.type != ShovelTime::Type::NONE) {
                 if (shovel_time.type == ShovelTime::Type::KEEP)
-                    _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C_IF");
+                    _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C_IF", true);
                 else if (shovel_time.type == ShovelTime::Type::UNTIL)
-                    _SimpleAvZInternal::shovel_with_container(shovel_time.time, plant_type, row, col, "C_IF");
+                    _SimpleAvZInternal::shovel_with_container(shovel_time.time, plant_type, row, col, "C_IF", true);
             }
         }
     },
