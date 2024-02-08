@@ -144,7 +144,10 @@ public:
     void ResetCob(Time time)
     {
         _SimpleAvZInternal::get_effect_time_and_set_time(time, "ResetCob");
-        autoGetPaoList();
+        AvZ::InsertOperation([=]() {
+            reset_cob_internal();
+        },
+            "CobOperator::ResetCob");
     }
 
     void virtual beforeScript() override
@@ -153,25 +156,11 @@ public:
         sequential_mode = TIME;
         next_pao = 0;
 
-        if (cob_cols.empty()) {
-            AvZ::SetTime(-599, 1);
-            autoGetPaoList();
-        } else {
-            AvZ::InsertTimeOperation(
-                -599, 1, [=]() {
-                    std::vector<AvZ::Grid> valid_cobs;
-                    for (auto& p : AvZ::alive_plant_filter) {
-                        if (p.type() == COB_CANNON && cob_cols.count(p.col() + 1))
-                            valid_cobs.push_back({p.row() + 1, p.col() + 1});
-                    }
-
-                    std::sort(valid_cobs.begin(), valid_cobs.end()); // 按炮位置排序
-
-                    AvZ::InsertGuard _(false);
-                    resetPaoList(valid_cobs);
-                },
-                "CobOperator::beforeScript");
-        }
+        AvZ::InsertTimeOperation(
+            -599, 1, [=]() {
+                reset_cob_internal();
+            },
+            "CobOperator::beforeScript");
     }
 
 private:
@@ -190,6 +179,21 @@ private:
         if (col < 1 || col > 8) {
             _SimpleAvZInternal::error(func_name, "炮尾列应在1~8内\n炮尾列: #", col);
         }
+    }
+
+    void reset_cob_internal()
+    {
+        std::vector<AvZ::Grid> valid_cobs;
+        for (auto& p : AvZ::alive_plant_filter) {
+            if (p.type() == COB_CANNON && (cob_cols.empty() || cob_cols.count(p.col() + 1))) {
+                valid_cobs.push_back({p.row() + 1, p.col() + 1});
+            }
+        }
+
+        std::sort(valid_cobs.begin(), valid_cobs.end()); // 按炮位置排序
+
+        AvZ::InsertGuard _(false);
+        resetPaoList(valid_cobs);
     }
 
     // 主发炮函数
