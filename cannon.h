@@ -252,7 +252,6 @@ private:
 
         // 保留原定炮序
         AvZ::InsertOperation([=]() {
-            auto prev_index_vec = pao_index_vec;
             auto excluded_index = AvZ::GetPlantIndex(row, col, COB_CANNON);
             std::vector<AvZ::Grid> valid_cobs;
 
