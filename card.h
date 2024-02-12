@@ -96,33 +96,23 @@ std::vector<int> get_prep_times(const std::vector<PlantType>& plant_types)
     return prep_times;
 }
 
-std::vector<bool> get_set_active_time_flags(const std::vector<PlantType>& plant_types)
+std::vector<std::vector<PlantType>> get_set_active_time_types_list(const std::vector<PlantType>& plant_types)
 {
-    std::vector<bool> set_active_time_flags;
+    std::vector<std::vector<PlantType>> get_set_active_time_types_list;
 
     for (const auto& plant_type : plant_types) {
-        bool flag = false;
-        bool is_imitater = plant_type > IMITATOR;
-        auto non_im_plant_type = non_imitater(plant_type);
-
-        if (contains({CHERRY_BOMB, JALAPENO}, non_im_plant_type)) {
-            flag = is_imitater;
-        } else if (contains({ICE_SHROOM, DOOM_SHROOM}, non_im_plant_type)) {
-            if (is_night_time())
-                flag = is_imitater;
-            else if (contains(plant_types, COFFEE_BEAN) || contains(plant_types, M_COFFEE_BEAN))
-                flag = true;
+        if (plant_type == M_CHERRY_BOMB || plant_type == M_JALAPENO) {
+            get_set_active_time_types_list.push_back({non_imitater(plant_type)});
+        } else if (is_night_time() && (plant_type == M_ICE_SHROOM || plant_type == M_DOOM_SHROOM)) {
+            get_set_active_time_types_list.push_back({non_imitater(plant_type)});
+        } else if (non_imitater(plant_type) == COFFEE_BEAN) {
+            get_set_active_time_types_list.push_back({ICE_SHROOM, DOOM_SHROOM});
+        } else {
+            get_set_active_time_types_list.push_back({});
         }
-
-        set_active_time_flags.push_back(flag);
     }
 
-    return set_active_time_flags;
-}
-
-bool get_set_active_time_flag(const PlantType& plant_type)
-{
-    return get_set_active_time_flags({{plant_type}}).front();
+    return get_set_active_time_types_list;
 }
 
 // 如果存在目标植物, 则铲之
@@ -227,6 +217,7 @@ void validate_shovel_position(int row, int col, const std::string& func_name)
 // RM(400, SUNFLOWER)-----------于400cs铲除场地上所有小向
 // RM(400, PUMPKIN, 1, 1)-------铲除1-1南瓜（没有则不铲）
 // RM(400, 1, 1)----------------铲除1-1, 优先铲除非南瓜
+// RM(400, {{1, 1}, {1, 2}})----铲除1-1和1-2, 优先铲除非南瓜
 // RM(400, {1, 2, 5, 6}, 9)-----铲除1,2,5,6路9列, 优先铲除非南瓜
 // RM(after(751), ...)----------用法同上, 延迟751cs生效
 void RM(Time time, PlantType target)
@@ -276,21 +267,30 @@ void RM(Time time, PlantType target, int row, int col)
         "RM");
 }
 
-void RM(Time time, const std::vector<int>& rows, int col)
+void RM(Time time, const std::vector<AvZ::Grid>& shovel_positions)
 {
-    for (const auto& row : rows) {
-        _SimpleAvZInternal::validate_shovel_position(row, col, "RM");
+    for (const auto& shovel_position : shovel_positions) {
+        _SimpleAvZInternal::validate_shovel_position(shovel_position.row, shovel_position.col, "RM");
     }
 
     _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
-    for (const auto& row : rows) {
-        AvZ::Shovel(row, static_cast<float>(col));
+    for (const auto& shovel_position : shovel_positions) {
+        AvZ::Shovel(shovel_position.row, static_cast<float>(shovel_position.col));
     }
+}
+
+void RM(Time time, const std::vector<int>& rows, int col)
+{
+    std::vector<AvZ::Grid> shovel_positions;
+    for (const auto& row : rows) {
+        shovel_positions.push_back({row, col});
+    }
+    RM(time, shovel_positions);
 }
 
 void RM(Time time, int row, int col)
 {
-    RM(time, {{row}}, col);
+    RM(time, {{row, col}});
 }
 
 // 夜间用原版冰. 自带生效时机修正.
@@ -382,8 +382,8 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
 
         _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C");
         AvZ::Card(plant_type, row, static_cast<float>(col));
-        if (_SimpleAvZInternal::get_set_active_time_flag(plant_type))
-            AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
+        for (const auto& p : (_SimpleAvZInternal::get_set_active_time_types_list({plant_type}).at(0)))
+            AvZ::SetPlantActiveTime(p, prep_time - 1);
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
@@ -410,17 +410,18 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
 
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "C");
     auto prep_times = _SimpleAvZInternal::get_prep_times(plant_types);
-    auto set_active_time_flags = _SimpleAvZInternal::get_set_active_time_flags(plant_types);
+    auto set_active_time_types_list = _SimpleAvZInternal::get_set_active_time_types_list(plant_types);
 
     for (size_t i = 0; i < plant_types.size(); i++) {
         auto plant_type = plant_types.at(i);
         auto prep_time = prep_times.at(i);
-        auto set_active_time_flag = set_active_time_flags.at(i);
+        auto set_active_time_types = set_active_time_types_list.at(i);
 
         _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C");
         AvZ::Card(plant_type, row, static_cast<float>(col));
-        if (set_active_time_flag)
-            AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
+        for (const auto& p : set_active_time_types) {
+            AvZ::SetPlantActiveTime(p, prep_time - 1);
+        }
 
         if (shovel_time.type != ShovelTime::Type::NONE) {
             if (shovel_time.type == ShovelTime::Type::KEEP)
@@ -457,15 +458,14 @@ void C_IF(const std::function<bool(int)>& condition, Time time, ShovelTime shove
 
     auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {{plant_type}}, "C_IF");
     auto prep_time = _SimpleAvZInternal::get_prep_time(plant_type);
-    auto set_active_time_flag = _SimpleAvZInternal::get_set_active_time_flag(plant_type);
 
     _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C_IF");
     AvZ::InsertOperation([=]() {
         if (condition(row)) {
             AvZ::SetNowTime();
             AvZ::Card(plant_type, row, static_cast<float>(col));
-            if (set_active_time_flag)
-                AvZ::SetPlantActiveTime(_SimpleAvZInternal::non_imitater(plant_type), prep_time - 1);
+            for (const auto& p : _SimpleAvZInternal::get_set_active_time_types_list({plant_type}).at(0))
+                AvZ::SetPlantActiveTime(p, prep_time - 1);
             if (shovel_time.type != ShovelTime::Type::NONE) {
                 if (shovel_time.type == ShovelTime::Type::KEEP)
                     _SimpleAvZInternal::shovel_with_container(effect_time + shovel_time.time, plant_type, row, col, "C_IF", true);
