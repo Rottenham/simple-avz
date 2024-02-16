@@ -110,12 +110,11 @@ struct EnsureAbsentInfo {
     template <typename... Args>
     EnsureAbsentInfo(ZombieType _zombie_type, Args... args)
         : zombie_type(_zombie_type)
-        , valid_rows(get_valid_rows(zombie_type))
     {
         for (int r : {args...}) {
             banned_rows.insert(r);
         }
-        auto valid_rows_set = get_valid_rows(zombie_type);
+        std::set<int> valid_rows_set = get_valid_rows(zombie_type);
         for (const auto& banned_row : banned_rows) {
             valid_rows_set.erase(banned_row);
         }
@@ -300,7 +299,7 @@ void EnsureAbsent(const std::vector<_SimpleAvZInternal::EnsureAbsentInfo>& ensur
                 for (const auto& src_idx : zombie_index[info.zombie_type][banned_row]) {
                     // 随机选择移动目标行
                     auto target_row = *_SimpleAvZInternal::select_random_elem(info.valid_rows);
-                    AvZ::ShowErrorNotInQueue("moved # to #", src_idx, target_row);
+                    _SimpleAvZInternal::move_zombie_row(zombie_array + src_idx, target_row);
                 }
             }
         }
