@@ -92,7 +92,11 @@ int get_delayed_time_and_update(int delay_time, const std::string& func_name)
 int get_effect_time(Time time, const std::string& func_name)
 {
     if (!global.is_last_effect_wave_initialized()) {
-        error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+        if (global.is_insert_op()) {
+            error(func_name, "请使用 At(), 而非 AvZ::InsertOperation()");
+        } else {
+            error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+        }
     }
 
     switch (time.type) {
@@ -110,7 +114,11 @@ int get_effect_time(Time time, const std::string& func_name)
 void set_time_inside(int time, const std::string& func_name)
 {
     if (!global.is_last_effect_wave_initialized()) {
-        error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+        if (global.is_insert_op()) {
+            error(func_name, "请使用 At(), 而非 AvZ::InsertOperation()");
+        } else {
+            error(func_name, "没有设置波数, 请用以下方式调用本函数:\nfor (auto w : waves(...)){\n    // 调用本函数\n}");
+        }
     }
     AvZ::SetTime(time, global.last_effect_wave);
 }
@@ -123,7 +131,7 @@ void get_effect_time_and_set_time(Time time, const std::string& func_name)
 // 在循环节外设定时间
 void set_time_outside(int time, int wave, const std::string& func_name)
 {
-    if (global.is_last_effect_wave_initialized()) {
+    if (global.is_last_effect_wave_initialized() || global.is_insert_op()) {
         error(func_name, "若省略生效时间, 需在waves()循环节外使用");
     }
 
@@ -131,3 +139,22 @@ void set_time_outside(int time, int wave, const std::string& func_name)
 }
 
 } // namespace _SimpleAvZInternal
+
+// 插入操作.
+// *** 使用用例:
+// At(0, [=]{           // 0cs处插入操作
+//     PP(after(373));  // 等价于立刻发炮
+// });
+template <class Op>
+void At(Time time, Op&& operation, const std::string& func_name = "unknown")
+{
+    _SimpleAvZInternal::get_effect_time_and_set_time(time, "At-->" + func_name);
+    auto wave = _SimpleAvZInternal::global.last_effect_wave;
+    AvZ::InsertOperation([=] {
+        AvZ::SetTime(AvZ::NowTime(wave), wave);
+        _SimpleAvZInternal::global.last_effect_wave = wave;
+        _SimpleAvZInternal::global.last_effect_time = AvZ::NowTime(wave);
+        operation();
+    },
+        func_name);
+}

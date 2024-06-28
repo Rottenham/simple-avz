@@ -39,6 +39,11 @@ public:
     {
         return last_effect_wave != TIME_WAVE_INIT_VAL;
     }
+
+    bool is_insert_op()
+    {
+        return AvZ::NowTime(1) != -65535;
+    }
 };
 
 Global global;

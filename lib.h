@@ -21,6 +21,7 @@
 #include "ice_filler.h"
 #include "iterator.h"
 #include "macro.h"
+#include "maid.h"
 #include "zombie.h"
 
 #ifndef __AVZ_VERSION__

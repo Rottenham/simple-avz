@@ -123,7 +123,7 @@ void shovel_with_container(int time, PlantType target, int row, int col, const s
     bool is_imitater = target > IMITATOR;
     target = non_imitater(target);
     if (usable_outside_loop) {
-        AvZ::SetTime(time, AvZ::GetRunningWave());
+        AvZ::SetTime(time);
     } else {
         set_time_inside(time, func_name);
     }
@@ -460,9 +460,10 @@ void C_IF(const std::function<bool(int)>& condition, Time time, ShovelTime shove
     auto prep_time = _SimpleAvZInternal::get_prep_time(plant_type);
 
     _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C_IF");
+    auto wave = _SimpleAvZInternal::global.last_effect_wave;
     AvZ::InsertOperation([=]() {
         if (condition(row)) {
-            AvZ::SetNowTime();
+            AvZ::SetTime(AvZ::NowTime(wave), wave);
             AvZ::Card(plant_type, row, static_cast<float>(col));
             for (const auto& p : _SimpleAvZInternal::get_set_active_time_types_list({plant_type}).at(0))
                 AvZ::SetPlantActiveTime(p, prep_time - 1);
