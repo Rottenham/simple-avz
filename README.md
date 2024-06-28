@@ -281,12 +281,12 @@ CobOperator c1(1);       // 只用炮尾在1列的炮
 CobOperator c45(4, 5);   // 只用炮尾在4或5列的炮
 
 void Script() {
-    c1.PP(...);     // 调用方法相同
+    c1.P(...);     // 调用方法相同
 }
 ```
 在屋顶场合, 你可以声明多个 `CobOperator`, 然后使用以上函数.
 
-如果你只需区分风炮和平炮, 可直接使用 slope.PP() 与 flat.PP(), Simple AvZ 已提前声明了这两个特殊的 `CobOperator`.
+如果你只需区分风炮和平炮, 可直接使用 slope.P() 与 flat.P(), Simple AvZ 已提前声明了这两个特殊的 `CobOperator`.
 
 ### 用卡 / 用铲
 
