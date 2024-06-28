@@ -1,7 +1,5 @@
 # Simple AvZ 💫
 
-[English](doc/README(eng).md) | [简体中文](./README.md)
-
 *---------- 一种很新的 AvZ*
 
 Simple AvZ, 即 "AvZ 简化版", 是基于 AvZ 1 设计的一套用于精简脚本的语法框架.

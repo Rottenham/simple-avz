@@ -4,6 +4,7 @@
 - Add `At()`
 - Add maid cheats related functions
 - Add pre-defined CobOperators `slope` and `flat`
+- Drop English support
 
 ## v1.0.1 - 2023/12/21
 
