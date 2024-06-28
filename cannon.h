@@ -270,6 +270,8 @@ private:
 };
 
 CobOperator cob_operator;
+CobOperator slope(1, 2, 3, 4);
+CobOperator flat(5, 6, 7, 8);
 
 // 发射一组并炸炮.
 // 若省略行数, 默认六行场地炸 2,5 路, 五行场地炸 2,4 路. 若省略列数, 默认炸 9 列.

@@ -293,11 +293,11 @@ void RM(Time time, int row, int col)
     RM(time, {{row, col}});
 }
 
-// 用卡. 可提供单一坐标, 多行同列, 或多卡同坐标.
+// 用卡. 可提供单一坐标, 多行同列, 多卡同坐标.
 // *** 使用示例:
-// C(359, CHERRY, 2, 9)-------------------于2-9放置樱桃, 359cs生效
-// C(400, {PUFF, SUN}, {1, 2}, 9)---------于1-9放置小喷, 2-9放置阳光菇
-// C(359, {LILY, DOOM, COFFEE}, 3, 9)-----于3-9放置荷叶, 核武, 咖啡豆
+// C(400, PUFF, 2, 9)-------------------于2-9放置小喷, 400cs生效
+// C(400, {PUFF, SUN}, {1, 2}, 9)-------于1-9放置小喷, 2-9放置阳光菇
+// C(400, {LILY, TALL_NUT}, 3, 9)-------于3-9放置荷叶, 高坚果
 //
 // *** 生效时间的变种:
 // C(after(110), ...)-----------用法同上, 延迟110cs生效
@@ -516,9 +516,9 @@ void M_I(int row, int col)
     M_I(601, row, col);
 }
 
-// 使用樱桃. 会自动补上花盆/荷叶.
+// 使用樱桃. 会自动补上容器.
 // *** 使用示例:
-// A(359, 2, 9);-----------于2-9放置樱桃, 359cs生效
+// A(359, 2, 9);-----------于2-9使用樱桃, 359cs生效
 void A(Time time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
@@ -532,9 +532,9 @@ void A(Time time, int row, int col)
     C(time, plant_types, row, col);
 }
 
-// 使用辣椒. 会自动补上花盆/荷叶.
+// 使用辣椒. 会自动补上容器.
 // *** 使用示例:
-// J(359, 2, 9);-----------于2-9放置辣椒, 359cs生效
+// J(359, 2, 9);-----------于2-9使用辣椒, 359cs生效
 void J(Time time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
@@ -548,9 +548,9 @@ void J(Time time, int row, int col)
     C(time, plant_types, row, col);
 }
 
-// 使用窝瓜. 会自动补上花盆/荷叶.
+// 使用窝瓜. 会自动补上容器.
 // *** 使用示例:
-// a(359, 2, 9);-----------于2-9放置窝瓜, 359cs生效
+// a(359, 2, 9);-----------于2-9使用窝瓜, 359cs生效
 void a(Time time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
@@ -564,9 +564,10 @@ void a(Time time, int row, int col)
     C(time, plant_types, row, col);
 }
 
-// 使用核武. 会自动补上花盆/荷叶/咖啡豆. 自带生效时机修正.
+// 使用核武. 会自动补上容器/咖啡豆. 自带生效时机修正.
 // *** 使用示例:
-// N(359, 2, 9);-----------于2-9放置核武, 359cs生效
+// N(359, 3, 9);-----------------于3-9使用核武, 359cs生效
+// N(359, {{3, 9}, {4, 9}});-----依次尝试于3-9, 4-9使用核武
 void N(Time time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
@@ -581,4 +582,29 @@ void N(Time time, int row, int col)
         plant_types.push_back(COFFEE_BEAN);
     }
     C(time, plant_types, row, col);
+}
+
+void N(Time time, const std::vector<AvZ::Grid>& positions)
+{
+    for (const auto& pos : positions) {
+        _SimpleAvZInternal::validate_card_position(DOOM_SHROOM, pos.row, pos.col, "N");
+    }
+
+    std::vector<PlantType> plant_types = {};
+    if (!_SimpleAvZInternal::is_night_time()) {
+        plant_types.push_back(COFFEE_BEAN);
+    }
+    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "N");
+    auto prep_time = _SimpleAvZInternal::is_night_time() ? 100 : 299;
+
+    At(effect_time - prep_time, [=]() {
+        for (const auto& pos : positions) {
+            int reject_type = Asm::getPlantRejectType(DOOM_SHROOM, pos.row - 1, pos.col - 1);
+            if (_SimpleAvZInternal::contains({Asm::NIL, Asm::NOT_ON_WATER, Asm::NEEDS_POT}, reject_type)) {
+                N(exact(after(prep_time)), pos.row, pos.col);
+                return;
+            }
+        }
+        AvZ::ShowErrorNotInQueue("N放置失败: 指定的所有位置皆不可用.");
+    });
 }
