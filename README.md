@@ -286,7 +286,7 @@ void Script() {
 ```
 在屋顶场合, 你可以声明多个 `CobOperator`, 然后使用以上函数.
 
-如果你只需区分风炮和平炮, 可直接使用 slope.P() 与 flat.P(), Simple AvZ 已提前声明了这两个特殊的 `CobOperator`.
+如果你只需区分风炮和平炮, 可直接使用 `slope.P()` 与 `flat.P()`, Simple AvZ 已提前声明了这两个特殊的 `CobOperator`.
 
 ### 用卡 / 用铲
 
