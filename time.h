@@ -89,7 +89,7 @@ int get_delayed_time_and_update(int delay_time, const std::string& func_name)
 
 // 获得生效时间, 并且更新[last_effect_time]
 // 不适用于卡片, 卡片应用[get_card_effect_time]
-int get_effect_time(Time time, const std::string& func_name)
+int get_effect_time_and_update(Time time, const std::string& func_name)
 {
     if (!global.is_last_effect_wave_initialized()) {
         if (global.is_insert_op()) {
@@ -123,9 +123,9 @@ void set_time_inside(int time, const std::string& func_name)
     AvZ::SetTime(time, global.last_effect_wave);
 }
 
-void get_effect_time_and_set_time(Time time, const std::string& func_name)
+void set_effect_time_and_update(Time time, const std::string& func_name)
 {
-    set_time_inside(get_effect_time(time, func_name), func_name);
+    set_time_inside(get_effect_time_and_update(time, func_name), func_name);
 }
 
 // 在循环节外设定时间
@@ -148,13 +148,15 @@ void set_time_outside(int time, int wave, const std::string& func_name)
 template <class Op>
 void At(Time time, Op&& operation, const std::string& func_name = "unknown")
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "At-->" + func_name);
+    _SimpleAvZInternal::set_effect_time_and_update(time, "At-->" + func_name);
     auto wave = _SimpleAvZInternal::global.last_effect_wave;
     AvZ::InsertOperation([=] {
         AvZ::SetTime(AvZ::NowTime(wave), wave);
         _SimpleAvZInternal::global.last_effect_wave = wave;
         _SimpleAvZInternal::global.last_effect_time = AvZ::NowTime(wave);
         operation();
+        _SimpleAvZInternal::global.reset_last_effect_wave();
+        _SimpleAvZInternal::global.reset_last_effect_time();
     },
         func_name);
 }

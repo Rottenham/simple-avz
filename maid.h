@@ -15,7 +15,7 @@ void MaidOn()
 }
 void MaidOn(Time time)
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "MaidOn");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "MaidOn");
     AvZ::MaidCheats::dancing();
 }
 
@@ -31,7 +31,7 @@ void MaidMove()
 }
 void MaidMove(Time time)
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "MaidMove");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "MaidMove");
     AvZ::MaidCheats::move();
 }
 
@@ -47,7 +47,7 @@ void MaidCall()
 }
 void MaidCall(Time time)
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "MaidCall");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "MaidCall");
     AvZ::MaidCheats::callPartner();
 }
 
@@ -63,6 +63,6 @@ void MaidStop()
 }
 void MaidStop(Time time)
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "MaidStop");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "MaidStop");
     AvZ::MaidCheats::stop();
 }

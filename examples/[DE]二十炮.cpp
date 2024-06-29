@@ -6,20 +6,9 @@
  * 布阵码: LI43bJyUlNTYOUyEEUycR1VUghRbBVQ=
  * 参考视频: https://www.bilibili.com/video/BV1mb4y1t7UD
  * 说明: 无铲种解作者冰巫师墨舞, 优化ch6-I6解作者Crescendo
- *
- * 
- * Script author: Crescendo(https://space.bilibili.com/8252252), 2023
- * You may freely copy, distribute, and modify this script, subject to that
- * you cite the source and do not remove this notice from the source code.
- *
- * Name: [DE] 20 Cob
- * PvZ Tools code: LI43bJyUlNTYOUyEEUycR1VUghRbBVQ=
- * Ref video: https://www.bilibili.com/video/BV1mb4y1t7UD
- * Note: non cob replacement solution by 冰巫师墨舞,
- *       improved ch6-I6 solution by Crescendo.
  */
 
-#include "SimpleAvZ/lib.h" // v1.0.0
+#include "SimpleAvZ/lib.h" // v1.1.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;
@@ -38,7 +27,7 @@ void Script()
         PP(225);
         PP(249);
         D(after(110), 1, 9);
-        C(now, CHERRY, 4, 9);
+        A(now, 4, 9);
     };
     auto PSD_Pd = [=]() {
         PP(225, {1, 2}, 9);
@@ -71,7 +60,7 @@ void Script()
     for (auto w : waves(3)) {
         P(180, 1, 8.625);
         P(429, 4, 7.525);
-        C(leng1 - 200, {DOOM, COFFEE}, 2, 9);
+        N(leng1 - 200, 2, 9);
         D(after(206), 2, 8.825);
         D(after(212 - 206), 4, 8.825);
 
@@ -110,7 +99,7 @@ void Script()
         C(603, COFFEE, 1, 9);
     }
 
-    // PA'd/AD
+    // PJd/AD
     for (auto w : waves(8)) {
         P(225, 2, 9);
         C(225, {JALA, CHERRY}, {1, 4}, 9);
@@ -119,7 +108,7 @@ void Script()
 
         C(336, keep(130), PUMPKIN, 5, 9);
         C(420, until(601), {PUFF, POT}, {4, 5}, 9);
-        C(603, {ICE, COFFEE}, 5, 9);
+        I(603, 5, 9);
     }
 
     // IPd/P-收尾
@@ -138,18 +127,18 @@ void Script()
         EnsureExist({{GIGA, 5}});
     }
 
-    // PSDA'/PD
+    // PSDJ/PD
     for (auto w : waves(10)) {
         P(225, 2, 9);
         P(267, 2, 9);
         D(after(126), 2, 8.8);
-        C(now, JALA, 1, 9);
+        J(now, 1, 9);
 
         P(286, 4, 9);
         D(after(110), 4, 8.0625);
 
         C(434, until(598), {PUFF, POT}, {4, 5}, 9);
-        C(601 + 100, {ICE, COFFEE}, 1, 9);
+        I(601 + 100, 1, 9);
     }
 
     // IPP-PPDD
@@ -199,15 +188,15 @@ void Script()
         PSD_Pd();
 
         C(420, until(548), {PUFF, POT}, {4, 5}, 9);
-        C(603, {ICE, COFFEE}, 1, 9);
+        I(603, 1, 9);
     }
 
-    // PA'd/AD
+    // PJd/AD
     for (auto w : waves(18)) {
         P(225, 2, 9);
-        C(now, JALA, 1, 9);
+        J(now, 1, 9);
         D(after(265), 2, 3.8);
-        C(243, CHERRY, 4, 9);
+        A(243, 4, 9);
         D(after(110), 4, 8.15);
 
         C(-17, M_ICE, 5, 9);

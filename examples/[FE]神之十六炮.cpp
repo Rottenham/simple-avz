@@ -6,20 +6,9 @@
  * 布阵码: LI43NJRUU4Vk15cVU0DYGVAHQ3JUVNBNREVX
  * 参考视频: https://www.bilibili.com/video/BV1EL4y18795
  * 说明: 原阵型作者冰巫师墨舞, 优化C7u解作者Crescendo
- * 
- * 
- * Script author: Crescendo(https://space.bilibili.com/8252252), 2023
- * You may freely copy, distribute, and modify this script, subject to that
- * you cite the source and do not remove this notice from the source code.
- *
- * Name: [FE] Sideless 16 Cob
- * PvZ Tools code: LI43NJRUU4Vk15cVU0DYGVAHQ3JUVNBNREVX
- * Ref video: https://www.bilibili.com/video/BV1EL4y18795
- * Note: original solution by 冰巫师墨舞,
- *       improved C7u solution by Crescendo.
  */
 
-#include "SimpleAvZ/lib.h" // v1.0.0
+#include "SimpleAvZ/lib.h" // v1.1.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;
@@ -38,7 +27,7 @@ void Script()
 
     // AD/PD
     for (auto w : waves(1)) {
-        C(225, CHERRY, 2, 9);
+        A(225, 2, 9);
         D(after(110), 1, 7.8);
         P(359, 5, 9);
         D(after(107), 5, 7.8);
@@ -89,18 +78,18 @@ void Script()
 
     // NDD
     for (auto w : waves(5, 14)) {
-        C(236, {LILY, DOOM}, w == 5 ? 3 : 4, 9);
+        N(236, w == 5 ? 3 : 4, 9);
         DD(after(114), 8.15);
 
         C(557, until(618), {GARLIC, BLOVER}, {2, 5}, 9);
     }
 
-    // PA/PA'd
+    // PA/PJd
     for (auto w : waves(6, 15)) {
         P(243, 2, 9);
-        C(after(120), CHERRY, 1, 8);
+        A(after(120), 1, 8);
         P(243, 5, 9);
-        C(after(201), JALA, 5, 9);
+        J(after(201), 5, 9);
         P(after(110), 5, 8.8);
 
         C(405, keep(134), TALL_NUT, 2, 9);
@@ -154,7 +143,7 @@ void Script()
         EnsureExist({GIGA, 1, 6});
     }
 
-    // PD/AA'D
+    // PD/AJD
     for (auto w : waves(10)) {
         P(333, 2, 9);
         D(after(240), 1, 4);
@@ -176,15 +165,15 @@ void Script()
         C(999, until(1220), GARLIC, 5, 9);
     }
 
-    // PND/BPA'A-收尾
+    // PND/BPJA-收尾
     for (auto w : waves(19)) {
         P(318, 2, 9);
-        C(after(235), DOOM, 1, 7);
+        N(after(235), 1, 7);
         D(after(113), 1, 8.675);
         B(264, 5, 8.2625);
         P(729, 5, 8.6);
-        C(after(242), JALA, 5, 9);
-        C(after(218), CHERRY, 5, 9);
+        J(after(242), 5, 9);
+        A(after(218), 5, 9);
 
         P(1408, 2, 9);
         P(1675, 5, 9);

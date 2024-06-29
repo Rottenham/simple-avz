@@ -128,7 +128,7 @@ public:
     // c.ExcludeCob(400, ...)-----400cs起效
     void ExcludeCob(Time time, int row, int col)
     {
-        _SimpleAvZInternal::get_effect_time_and_set_time(time, "ExcludeCob");
+        _SimpleAvZInternal::set_effect_time_and_update(time, "ExcludeCob");
         exclude_cob_internal(row, col);
     }
 
@@ -143,7 +143,7 @@ public:
     // c.ResetCob(400)-----重置为使用所有炮, 400cs起效
     void ResetCob(Time time)
     {
-        _SimpleAvZInternal::get_effect_time_and_set_time(time, "ResetCob");
+        _SimpleAvZInternal::set_effect_time_and_update(time, "ResetCob");
         AvZ::InsertOperation([=]() {
             reset_cob_internal();
         },
@@ -218,7 +218,7 @@ private:
             validate_cob_col(specified_cob.col, func_name);
         }
 
-        auto effect_time = _SimpleAvZInternal::get_effect_time(time, func_name);
+        auto effect_time = _SimpleAvZInternal::get_effect_time_and_update(time, func_name);
 
         for (const auto& pos : positions) {
             auto row = pos.row;

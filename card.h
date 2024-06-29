@@ -32,7 +32,7 @@ bool is_instant(std::vector<PlantType> plant_types)
 
 int get_card_effect_time(Time time, const std::vector<PlantType>& plant_types, const std::string& func_name)
 {
-    auto effect_time = get_effect_time(time, func_name);
+    auto effect_time = get_effect_time_and_update(time, func_name);
     if (time.fix_card_time_to_cob && is_instant(plant_types))
         return effect_time + 1;
     else
@@ -227,7 +227,7 @@ void RM(Time time, PlantType target)
         _SimpleAvZInternal::error("RM", "墓碑吞噬者无法铲除");
     }
 
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "RM");
     AvZ::InsertOperation([=]() {
         for (auto& p : AvZ::alive_plant_filter) {
             if (p.type() == target) {
@@ -247,7 +247,7 @@ void RM(Time time, PlantType target, int row, int col)
     }
     _SimpleAvZInternal::validate_shovel_position(row, col, "RM");
 
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "RM");
     AvZ::InsertOperation([=]() {
         bool found = false;
 
@@ -273,7 +273,7 @@ void RM(Time time, const std::vector<AvZ::Grid>& shovel_positions)
         _SimpleAvZInternal::validate_shovel_position(shovel_position.row, shovel_position.col, "RM");
     }
 
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "RM");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "RM");
     for (const auto& shovel_position : shovel_positions) {
         AvZ::Shovel(shovel_position.row, static_cast<float>(shovel_position.col));
     }
@@ -367,11 +367,22 @@ void C(Time time, ShovelTime shovel_time, const std::vector<PlantType>& plant_ty
 
     for (size_t i = 0; i < plant_types.size(); i++) {
         auto plant_type = plant_types.at(i);
+        auto non_im_plant_type = _SimpleAvZInternal::non_imitater(plant_type);
         auto prep_time = prep_times.at(i);
         auto set_active_time_types = set_active_time_types_list.at(i);
 
         _SimpleAvZInternal::set_time_inside(effect_time - prep_time, "C");
-        AvZ::Card(plant_type, row, static_cast<float>(col));
+        if (_SimpleAvZInternal::contains({LILY_PAD, FLOWER_POT}, non_im_plant_type)) {
+            AvZ::InsertOperation([=]() {
+                if (AvZ::GetPlantIndex(row, col, non_im_plant_type) < 0) {
+                    AvZ::SetNowTime();
+                    AvZ::Card(plant_type, row, static_cast<float>(col));
+                }
+            },
+                "C_container");
+        } else {
+            AvZ::Card(plant_type, row, static_cast<float>(col));
+        }
         for (const auto& p : set_active_time_types) {
             AvZ::SetPlantActiveTime(p, prep_time - 1);
         }
@@ -468,58 +479,85 @@ std::function<bool(int)> pos(const ZombieType& zombie_type, int x)
     return pos({{zombie_type}}, x);
 }
 
-// 夜间用原版冰. 自带生效时机修正.
+// 使用原版冰. 会自动补上容器/咖啡豆. 自带生效时机修正.
 // 若不指定生效时间, 默认在本波 601cs 生效.
 // *** 使用示例:
-// I(1, 2)------------------于1-2放置原版冰, 601cs生效(完美预判冰)
+// I(1, 2)------------------于1-2使用原版冰, 601cs生效(完美预判冰)
 // I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
-// I(359, 1, 2)-------------359cs生效
+// I(359, keep(0), 1, 2)----359cs生效, 生效后铲除容器
+void I(Time time, ShovelTime shovel_time, int row, int col)
+{
+    std::vector<PlantType> plant_types = {};
+    if (_SimpleAvZInternal::is_roof()) {
+        plant_types.push_back(FLOWER_POT);
+    }
+    if (_SimpleAvZInternal::has_water_rows() && (row == 3 || row == 4)) {
+        plant_types.push_back(LILY_PAD);
+    }
+    plant_types.push_back(ICE_SHROOM);
+    if (!_SimpleAvZInternal::is_night_time()) {
+        plant_types.push_back(COFFEE_BEAN);
+    }
+    C(time, shovel_time, plant_types, row, col);
+}
+
 void I(Time time, int row, int col)
 {
-    if (!_SimpleAvZInternal::is_night_time()) {
-        C(time, {ICE_SHROOM, COFFEE_BEAN}, row, col);
-    } else {
-        _SimpleAvZInternal::validate_card_position(ICE_SHROOM, row, col, "I");
+    I(time, ShovelTime(), row, col);
+}
 
-        auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {ICE_SHROOM}, "I");
-        _SimpleAvZInternal::set_time_inside(effect_time - 100, "I");
-        AvZ::Card(ICE_SHROOM, row, static_cast<float>(col));
-    }
+void I(ShovelTime shovel_time, int row, int col)
+{
+    I(601, shovel_time, row, col);
 }
 
 void I(int row, int col)
 {
-    I(601, row, col);
+    I(601, ShovelTime(), row, col);
 }
 
-// 夜间用复制冰. 自带生效时机修正.
+// 使用复制冰. 会自动补上容器/咖啡豆. 自带生效时机修正.
 // 若不指定生效时间, 默认在本波 601cs 生效.
 // *** 使用示例:
-// M_I(1, 2)------------------于1-2放置复制冰, 601cs生效(完美预判冰)
+// M_I(1, 2)------------------于1-2使用复制冰, 601cs生效(完美预判冰)
 // M_I(after(210), 1, 2)------延迟210cs生效(ice3), 推荐在激活炮后使用
-// M_I(359, 1, 2)-------------359cs生效
+// M_I(359, keep(0), 1, 2)----359cs生效, 生效后铲除容器
+void M_I(Time time, ShovelTime shovel_time, int row, int col)
+{
+    std::vector<PlantType> plant_types = {};
+    if (_SimpleAvZInternal::is_roof()) {
+        plant_types.push_back(FLOWER_POT);
+    }
+    if (_SimpleAvZInternal::has_water_rows() && (row == 3 || row == 4)) {
+        plant_types.push_back(LILY_PAD);
+    }
+    plant_types.push_back(M_ICE_SHROOM);
+    if (!_SimpleAvZInternal::is_night_time()) {
+        plant_types.push_back(COFFEE_BEAN);
+    }
+    C(time, shovel_time, plant_types, row, col);
+}
+
 void M_I(Time time, int row, int col)
 {
-    if (!_SimpleAvZInternal::is_night_time()) {
-        _SimpleAvZInternal::error("M_I", "M_I为夜间复制冰函数, 不可在白昼使用");
-    }
-    _SimpleAvZInternal::validate_card_position(M_ICE_SHROOM, row, col, "M_I");
+    M_I(time, ShovelTime(), row, col);
+}
 
-    auto effect_time = _SimpleAvZInternal::get_card_effect_time(time, {M_ICE_SHROOM}, "M_I");
-    _SimpleAvZInternal::set_time_inside(effect_time - 420, "M_I");
-    AvZ::Card(M_ICE_SHROOM, row, static_cast<float>(col));
-    AvZ::SetPlantActiveTime(ICE_SHROOM, 419);
+void M_I(ShovelTime shovel_time, int row, int col)
+{
+    M_I(601, shovel_time, row, col);
 }
 
 void M_I(int row, int col)
 {
-    M_I(601, row, col);
+    M_I(601, ShovelTime(), row, col);
 }
 
 // 使用樱桃. 会自动补上容器.
 // *** 使用示例:
-// A(359, 2, 9);-----------于2-9使用樱桃, 359cs生效
-void A(Time time, int row, int col)
+// A(359, 2, 9)-------------于2-9使用樱桃, 359cs生效
+// A(359, keep(0), 2, 9)----生效后铲除容器
+void A(Time time, ShovelTime shovel_time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
     if (_SimpleAvZInternal::is_roof()) {
@@ -529,13 +567,19 @@ void A(Time time, int row, int col)
         plant_types.push_back(LILY_PAD);
     }
     plant_types.push_back(CHERRY_BOMB);
-    C(time, plant_types, row, col);
+    C(time, shovel_time, plant_types, row, col);
+}
+
+void A(Time time, int row, int col)
+{
+    A(time, ShovelTime(), row, col);
 }
 
 // 使用辣椒. 会自动补上容器.
 // *** 使用示例:
-// J(359, 2, 9);-----------于2-9使用辣椒, 359cs生效
-void J(Time time, int row, int col)
+// J(359, 2, 9)-------------于2-9使用辣椒, 359cs生效
+// J(359, keep(0), 2, 9)----生效后铲除容器
+void J(Time time, ShovelTime shovel_time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
     if (_SimpleAvZInternal::is_roof()) {
@@ -545,13 +589,19 @@ void J(Time time, int row, int col)
         plant_types.push_back(LILY_PAD);
     }
     plant_types.push_back(JALAPENO);
-    C(time, plant_types, row, col);
+    C(time, shovel_time, plant_types, row, col);
+}
+
+void J(Time time, int row, int col)
+{
+    J(time, ShovelTime(), row, col);
 }
 
 // 使用窝瓜. 会自动补上容器.
 // *** 使用示例:
-// a(359, 2, 9);-----------于2-9使用窝瓜, 359cs生效
-void a(Time time, int row, int col)
+// a(359, 2, 9)-------------于2-9使用窝瓜, 359cs生效
+// a(359, keep(0), 2, 9)----生效后铲除容器
+void a(Time time, ShovelTime shovel_time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
     if (_SimpleAvZInternal::is_roof()) {
@@ -561,14 +611,20 @@ void a(Time time, int row, int col)
         plant_types.push_back(LILY_PAD);
     }
     plant_types.push_back(SQUASH);
-    C(time, plant_types, row, col);
+    C(time, shovel_time, plant_types, row, col);
+}
+
+void a(Time time, int row, int col)
+{
+    a(time, ShovelTime(), row, col);
 }
 
 // 使用核武. 会自动补上容器/咖啡豆. 自带生效时机修正.
 // *** 使用示例:
-// N(359, 3, 9);-----------------于3-9使用核武, 359cs生效
-// N(359, {{3, 9}, {4, 9}});-----依次尝试于3-9, 4-9使用核武
-void N(Time time, int row, int col)
+// N(359, 3, 9)----------------于3-9使用核武, 359cs生效
+// N(359, {{3, 9}, {4, 9}})----依次尝试于3-9, 4-9使用核武
+// N(359, keep(0), 3, 9)-------生效后铲除容器
+void N(Time time, ShovelTime shovel_time, int row, int col)
 {
     std::vector<PlantType> plant_types = {};
     if (_SimpleAvZInternal::is_roof()) {
@@ -581,10 +637,15 @@ void N(Time time, int row, int col)
     if (!_SimpleAvZInternal::is_night_time()) {
         plant_types.push_back(COFFEE_BEAN);
     }
-    C(time, plant_types, row, col);
+    C(time, shovel_time, plant_types, row, col);
 }
 
-void N(Time time, const std::vector<AvZ::Grid>& positions)
+void N(Time time, int row, int col)
+{
+    N(time, ShovelTime(), row, col);
+}
+
+void N(Time time, ShovelTime shovel_time, const std::vector<AvZ::Grid>& positions)
 {
     for (const auto& pos : positions) {
         _SimpleAvZInternal::validate_card_position(DOOM_SHROOM, pos.row, pos.col, "N");
@@ -601,10 +662,15 @@ void N(Time time, const std::vector<AvZ::Grid>& positions)
         for (const auto& pos : positions) {
             int reject_type = Asm::getPlantRejectType(DOOM_SHROOM, pos.row - 1, pos.col - 1);
             if (_SimpleAvZInternal::contains({Asm::NIL, Asm::NOT_ON_WATER, Asm::NEEDS_POT}, reject_type)) {
-                N(exact(after(prep_time)), pos.row, pos.col);
+                N(exact(after(prep_time)), shovel_time, pos.row, pos.col);
                 return;
             }
         }
-        AvZ::ShowErrorNotInQueue("N放置失败: 指定的所有位置皆不可用.");
-    });
+        AvZ::ShowErrorNotInQueue("N()放置失败: 指定的所有位置皆不可用."); }, "N");
+    effect_time = _SimpleAvZInternal::get_card_effect_time(time, plant_types, "N"); // reset effect time
+}
+
+void N(Time time, const std::vector<AvZ::Grid>& positions)
+{
+    N(time, ShovelTime(), positions);
 }

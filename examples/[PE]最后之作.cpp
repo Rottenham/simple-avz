@@ -6,20 +6,9 @@
  * 布阵码: LI43bJyUlFSWYjTGVZ5Xtc0kRWQkDF3QU0kk3TS+lmRNVPidRIlW
  * 参考视频: https://www.bilibili.com/video/BV1Uo4y1f7Fa
  * 说明: 原阵型作者光锥维, 优化ch4解作者ng收割机
- * 
- * 
- * Script author: Crescendo(https://space.bilibili.com/8252252), 2023
- * You may freely copy, distribute, and modify this script, subject to that
- * you cite the source and do not remove this notice from the source code.
- *
- * Name: [PE] Last Order
- * PvZ Tools code: LI43bJyUlFSWYjTGVZ5Xtc0kRWQkDF3QU0kk3TS+lmRNVPidRIlW
- * Ref video: https://www.bilibili.com/video/BV1Uo4y1f7Fa
- * Note: original setup by 光锥维,
- *       improved ch4 solution by ng收割机.
  */
 
-#include "SimpleAvZ/lib.h" // v1.0.0
+#include "SimpleAvZ/lib.h" // v1.1.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;
@@ -36,10 +25,10 @@ void Script()
 
     // ND/NSA
     for (auto w : waves(1)) {
-        C(249, {DOOM, COFFEE}, 3, 9);
+        N(249, 3, 9);
         P(249, 5, 9);
         D(after(110), 1, 7.8);
-        C(now, CHERRY, 5, 9);
+        A(now, 5, 9);
 
         C(-599, LILY, 3, 9);
         C(after(751), LILY, 3, 3);
@@ -87,7 +76,7 @@ void Script()
         DD(after(220), 8.525);
         B(1100, 3, 8.2375);
         PP(1558, 8.6);
-        C(after(220), {LILY, DOOM, COFFEE}, 3, 8);
+        N(after(220), 3, 8);
         DD(after(220), 8.6);
 
         PP(4300, 8.6);
@@ -97,7 +86,7 @@ void Script()
     for (auto w : waves(10)) {
         PP(249);
         P(333, 2, 9);
-        C(333, CHERRY, 5, 9);
+        A(333, 5, 9);
         DD(after(263), {2, 5}, 4.5);
 
         I();

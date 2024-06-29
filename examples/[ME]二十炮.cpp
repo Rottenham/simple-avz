@@ -6,19 +6,9 @@
  * 布阵码: LI4/bIyUhNTQTQQswNxUVCU0d0FR
  * 参考视频: https://www.bilibili.com/video/BV1pQ4y1d7rM
  * 说明: C7u-C8u融合解作者Crescendo
- * 
- * 
- * Script author: Crescendo(https://space.bilibili.com/8252252), 2023
- * You may freely copy, distribute, and modify this script, subject to that
- * you cite the source and do not remove this notice from the source code.
- *
- * Name: [ME] 20 Cob
- * PvZ Tools code: LI4/bIyUhNTQTQQswNxUVCU0d0FR
- * Ref video: https://www.bilibili.com/video/BV1pQ4y1d7rM
- * Note: C7u-C8u solution by Crescendo.
  */
 
-#include "SimpleAvZ/lib.h" // v1.0.0
+#include "SimpleAvZ/lib.h" // v1.1.0
 #include "avz.h"           // 22_10_01
 
 using namespace AvZ;
@@ -46,7 +36,7 @@ void Script()
         c3.D(after(110), 2, 9);
         c7.D(now, 4, 9);
 
-        C(601, {POT, ICE}, 1, 9);
+        I(1, 9);
     }
 
     // IPP-B-PPDD
@@ -81,8 +71,8 @@ void Script()
 
     // I'Ja-B-PPDD
     for (auto w : waves(4, 13)) {
-        C(258, {POT, JALA}, 1, 9);
-        C(302, SQUASH, 2, 9);
+        J(258, 1, 9);
+        a(302, 2, 9);
         c7.B(1100, 4, 8.15);
         c5.P(leng1 - 200, 2, 8.4125);
         c1.P(leng1 - 200, 5, 8.4125);
@@ -98,7 +88,7 @@ void Script()
     // APDD
     for (auto w : waves(5, 14)) {
         C(27, POT, 1, 9);
-        C(227, CHERRY, 1, 9);
+        A(227, 1, 9);
         c3.P(now, 4, 8.7875);
         c3.D(after(110), 2, 8.175);
         c7.D(now, 4, 8.175);
@@ -112,7 +102,7 @@ void Script()
 
     // NDDDD
     for (auto w : waves(6, 15)) {
-        C(293, {POT, DOOM}, w == 6 ? 4 : 3, 9);
+        N(293, w == 6 ? 4 : 3, 9);
         c1.D(after(121), 2, 8.4);
         c5.D(now, 4, 8.4);
         c3.D(after(119), 2, 8.3875);
@@ -128,12 +118,12 @@ void Script()
         c1.D(after(134), 2, 8.9125);
         c5.D(now, 4, 8.7125);
 
-        C(606, {POT, ICE}, 1, 9);
+        I(606, 1, 9);
     }
 
     // Ia-B-PPDD
     for (auto w : waves(8, 17)) {
-        C(188, SQUASH, 1, 9);
+        a(188, 1, 9);
         c7.B(1100, 3, 8.15);
         c5.P(leng1 - 200, 1, 8.4125);
         c7.P(leng1 - 200, 4, 8.45);
@@ -149,7 +139,7 @@ void Script()
 
     // PDD/PD-I'收尾
     for (auto w : waves(9)) {
-        C(530, keep(0), {POT, M_ICE}, 1, 9);
+        M_I(530, keep(0), 1, 9);
 
         c3.P(236, 2, 8.7875);
         c3.D(after(141), 2, 8.5375);
@@ -189,7 +179,7 @@ void Script()
         c3.D(after(220), 4, 9.2);
         c1.D(after(220), 4, 9.2);
 
-        C(2383, {POT, CHERRY}, 2, 9);
+        A(2383, 2, 9);
         c5.P(2383, 4, 9);
     }
 

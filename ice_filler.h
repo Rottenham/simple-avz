@@ -39,7 +39,7 @@ void set_ice_internal(const std::vector<AvZ::Grid>& ice_positions)
 // SetIce(400, {...})-----------400cs生效
 void SetIce(Time time, const std::vector<AvZ::Grid>& ice_positions)
 {
-    _SimpleAvZInternal::get_effect_time_and_set_time(time, "SetIce");
+    _SimpleAvZInternal::set_effect_time_and_update(time, "SetIce");
     _SimpleAvZInternal::set_ice_internal(ice_positions);
 }
 
