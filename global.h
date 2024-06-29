@@ -1,6 +1,6 @@
 #pragma once
 
-#include "error.h"
+#include "libavz.h"
 
 namespace _SimpleAvZInternal {
 
@@ -12,12 +12,14 @@ public:
     int last_effect_time = TIME_WAVE_INIT_VAL;
     int last_effect_wave = TIME_WAVE_INIT_VAL;
     bool is_ice_positions_initialized = false;
+    bool disable_errors = false;
 
     void virtual beforeScript() override
     {
         last_effect_time = TIME_WAVE_INIT_VAL;
         last_effect_wave = TIME_WAVE_INIT_VAL;
         is_ice_positions_initialized = false;
+        disable_errors = false;
     }
 
     void reset_last_effect_time()
